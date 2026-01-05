@@ -1,87 +1,93 @@
 import fs from 'fs';
-import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
-import { Job, JobStatus } from './base.js';
+import { type ChildProcessWithoutNullStreams, spawn } from 'child_process';
+import { Job, JobStatus } from './base-job.js';
 
 /**
- * Optional download settings.
+ * YT-dlp job options
  */
-export type YTdlpJobOptions = {
-    username?: string;
-    password?: string;
-    cookies?: string;
-    debug?: boolean;
+export interface YTdlpJobOptions {
+  username?: string;
+  password?: string;
+  cookies?: string;
+  debug?: boolean;
 }
 
 /**
- * Class representing a download job.
+ * YT-dlp job
  */
 export class YTdlpJob extends Job {
-    private inputUrl: string;
-    private outputFile: string;
-    private options: YTdlpJobOptions;
-    
-    private ytdlp: ChildProcessWithoutNullStreams|null = null;
+  private inputUrl: string;
+  private outputFile: string;
+  private options: YTdlpJobOptions;
 
-    constructor(inputUrl: string, outputFile: string, options: YTdlpJobOptions = {}) {
-        super();
-        this.inputUrl = inputUrl;
-        this.outputFile = outputFile;
-        this.options = options;
+  private ytdlp: ChildProcessWithoutNullStreams | null = null;
+
+  constructor(inputUrl: string, outputFile: string, options: YTdlpJobOptions = {}) {
+    super();
+    this.inputUrl = inputUrl;
+    this.outputFile = outputFile;
+    this.options = options;
+  }
+
+  #handle(scope: string, data: any, isError: boolean) {
+    if (!data) {return false;}
+
+    if (this.options.debug) {
+      console.log(`[${scope}] ${data.toString()}`);
+      if (isError) {console.log('----- FAILURE - WOULD EXIT HERE -----');}
+    } else if (isError) {
+      try {
+        this.ytdlp!.kill();
+      } catch (e: any) {
+        console.log(`[${scope}] Failed to kill process: ${e.toString()}`);
+      }
+      if (fs.existsSync(`${this.outputFile}`)) {fs.unlinkSync(`${this.outputFile}`);}
+      if (fs.existsSync(`${this.outputFile}.cookies`)) {fs.unlinkSync(`${this.outputFile}.cookies`);}
+      this.emit(JobStatus.Failure, `[${scope}] ${data.toString()}`);
+      return true;
     }
 
-    handle(scope: string, data: any, isError: boolean) {
-        if (!data) return false;
+    return false;
+  }
 
-        if (this.options.debug) {
-            console.log(`[${scope}] ${data.toString()}`);
-            if (isError) console.log('----- FAILURE - WOULD EXIT HERE -----');
-        }
-        else if (isError) {
-            try { this.ytdlp!.kill(); } catch (e) {}
-            if (fs.existsSync(`${this.outputFile}`)) fs.unlinkSync(`${this.outputFile}`);
-            if (fs.existsSync(`${this.outputFile}.cookies`)) fs.unlinkSync(`${this.outputFile}.cookies`);
-            this.emit(JobStatus.Failure, `[${scope}] ${data.toString()}`);
-            return true;
-        }
+  start() {
+    console.log(`Starting download from ${this.inputUrl} to ${this.outputFile}`);
+    this.emit(JobStatus.Progress, { percent: 0 });
 
-        return false;
+    // Prepare yt-dlp arguments
+    const ytdlpArgs = [
+      '-o',
+      this.outputFile,
+      '-f',
+      'bv*[height<=1080][ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b',
+      '-v',
+      '--js-runtime=node',
+    ];
+
+    if (this.options.username && this.options.password)
+      {ytdlpArgs.push('-u', this.options.username, '-p', this.options.password);}
+    if (this.options.cookies && this.options.cookies.length > 0) {
+      fs.writeFileSync(`${this.outputFile}.cookies`, this.options.cookies);
+      ytdlpArgs.push('--cookies', `${this.outputFile}.cookies`);
     }
 
-    start() {
-        console.log(`Starting download from ${this.inputUrl} to ${this.outputFile}`);
-        this.emit(JobStatus.Progress, { percent: 0 });
-        
-        // Prepare yt-dlp arguments
-        const ytdlpArgs = [
-            '-o', this.outputFile,
-            '-f', 'bv*[height<=1080][ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b',
-            '-v',
-            '--js-runtime=node'
-        ];
+    ytdlpArgs.push(this.inputUrl);
 
-        if (this.options.username && this.options.password) ytdlpArgs.push('-u', this.options.username, '-p', this.options.password);
-        if (this.options.cookies && this.options.cookies.length > 0) {
-            fs.writeFileSync(`${this.outputFile}.cookies`, this.options.cookies);
-            ytdlpArgs.push('--cookies', `${this.outputFile}.cookies`);
-        }
+    // Start yt-dlp process
+    this.ytdlp = spawn('yt-dlp', ytdlpArgs);
 
-        ytdlpArgs.push(this.inputUrl);
+    this.ytdlp.on('error', (error) => {
+      if (this.#handle('yt-dlp::error', error, true)) {return;}
+    });
 
-        // Start yt-dlp process
-        this.ytdlp = spawn('yt-dlp', ytdlpArgs);
+    this.ytdlp.on('close', (code) => {
+      if (this.#handle('yt-dlp::close', code, code !== 0)) {return;}
+      this.emit(JobStatus.Success, { file: this.outputFile });
+    });
 
-        this.ytdlp.on('error', (error) => {
-            if (this.handle('yt-dlp::error', error, true)) return;
-        });
-        
-        this.ytdlp.on('close', (code) => {
-            if (this.handle('yt-dlp::close', code, code !== 0)) return;
-            this.emit(JobStatus.Success, { file: this.outputFile });
-        });
-        
-        this.ytdlp.stderr.on('data', (data) => {
-            data = data.toString();
-            if (this.handle('yt-dlp::out', data, /error[:|\]]/mi.test(data))) return;
-        });
-    }
+    this.ytdlp.stderr.on('data', (data) => {
+      data = data.toString();
+      if (this.#handle('yt-dlp::out', data, /error[:|\]]/im.test(data))) {return;}
+    });
+  }
 }

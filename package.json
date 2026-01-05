@@ -1,31 +1,46 @@
 {
   "name": "@ryangarber/v10m",
-  "description": "Download any video and make it 10MB.",
-  "version": "0.1.0",
+  "description": "A versatile media downloader with built-in compression.",
+  "version": "predev",
   "type": "module",
   "main": "./src/index.ts",
-  "exports": {
-    ".": "./src/index.ts",
-    "./jobs": "./src/jobs/index.ts",
-    "./workers": "./src/workers/index.ts"
+  "scripts": {
+    "build": "npm run clean && tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf ./dist",
+    "prebuild": "npm run lint",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "type-check": "tsc --noEmit",
+    "dev:cli": "tsx src/apps/cli/index.ts",
+    "dev:web": "tsx watch src/apps/web/index.ts",
+    "start:cli": "node dist/apps/cli/index.js",
+    "start:web": "node dist/apps/web/index.js",
+    "test": "echo \"No tests specified\" && exit 0",
+    "prepublishOnly": "npm run build"
   },
   "bin": {
     "v10m": "./src/apps/cli/index.ts",
     "v10m-web": "./src/apps/web/index.ts"
   },
-  "scripts": {
-    "start": "tsx src/index.ts",
-    "dev": "tsx watch src/index.ts",
-    "cli": "tsx src/apps/cli/index.ts",
-    "web": "tsx src/apps/web/index.ts"
+  "exports": {
+    ".": "./src/index.ts",
+    "./jobs": "./src/jobs/index.ts",
+    "./workers": "./src/workers/index.ts"
   },
   "dependencies": {
+    "@eslint/js": "^9.39.2",
     "@fastify/cookie": "^11.0.2",
     "commander": "^14.0.2",
     "dotenv": "^17.2.3",
     "ejs": "^3.1.10",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
     "fastify": "^5.6.2",
-    "snowyflake": "^2.0.1"
+    "snowyflake": "^2.0.1",
+    "typescript-eslint": "^8.52.0"
   },
   "devDependencies": {
     "@types/ejs": "^3.1.5",

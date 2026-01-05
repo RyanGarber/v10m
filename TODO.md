@@ -1,3 +1,3 @@
 * Add VPN option
 * Transcode all videos to <10MB
-* Implement CLI
+* Make sure all paths support Windows

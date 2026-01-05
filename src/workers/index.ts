@@ -1,4 +1,4 @@
-import { type Worker, WorkerList } from './list.js';
-import { WorkerManager } from './manager.js';
+import { type WorkerListItem, WorkerList } from './worker-list.js';
+import { WorkerManager } from './worker-manager.js';
 
-export { type Worker, WorkerList, WorkerManager };
+export { type WorkerListItem, WorkerList, WorkerManager };

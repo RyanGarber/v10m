@@ -1,6 +1,6 @@
-import { ConfigManager } from './config.js';
-import * as jobs from './jobs/index.js';
-import * as workers from './workers/index.js';
+import { ConfigManager } from './src/config.js';
+import * as jobs from './src/jobs/index.js';
+import * as workers from './src/workers/index.js';
 
 const tests = [
     'https://youtube.com/shorts/DC8lWmZ3GpE?si=nrejbVZuowYsBElq'
