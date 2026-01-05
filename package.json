@@ -1,0 +1,35 @@
+{
+  "name": "@ryangarber/v10m",
+  "description": "Download any video and make it 10MB.",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./jobs": "./src/jobs/index.ts",
+    "./workers": "./src/workers/index.ts"
+  },
+  "bin": {
+    "v10m": "./src/apps/cli/index.ts",
+    "v10m-web": "./src/apps/web/index.ts"
+  },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "cli": "tsx src/apps/cli/index.ts",
+    "web": "tsx src/apps/web/index.ts"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.0.2",
+    "commander": "^14.0.2",
+    "dotenv": "^17.2.3",
+    "ejs": "^3.1.10",
+    "fastify": "^5.6.2",
+    "snowyflake": "^2.0.1"
+  },
+  "devDependencies": {
+    "@types/ejs": "^3.1.5",
+    "@types/node": "^25.0.3",
+    "tsx": "^4.21.0"
+  }
+}

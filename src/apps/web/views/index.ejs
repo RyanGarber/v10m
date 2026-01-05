@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en" data-mdb-theme="dark">
+    <head>
+        <title>V10M</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/9.2.0/mdb.min.css" rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container my-5">
+            <div class="subcontainer mx-auto" style="max-width: 600px">
+                <div class="card" id="main">
+                    <div class="card-body">
+                        <h5 class="card-title">Download</h5>
+                        <p class="text-muted small">Enter a video URL to download.</p>
+                        <div class="input-group">
+                            <input type="text" class="form-control py-2" placeholder="Link to video" id="url">
+                            <button class="btn btn-link" type="button" onclick="submit()">
+                                <i class="fas fa-xl fa-cloud-arrow-down"></i>
+                            </button>
+                        </div>
+                        <div class="mt-4" style="display: none" id="status">
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%" id="progress"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mt-4" style="display: none" id="troubleshoot">
+                    <div class="card-body">
+                        <h5 class="card-title mb-0">Troubleshoot</h5>
+                        <div class="mt-3">
+                            <p class="text-muted small">Try including your cookies or login for the site.</p>
+                            <div>
+                                <label class="form-label small text-muted d-flex justify-content-between">
+                                    <span>Netscape-Style Cookies</span>
+                                    <span class="badge bg-primary">recommended</span>
+                                </label>
+                                <textarea class="form-control" placeholder="cookies.txt" id="cookies"></textarea>
+                            </div>
+                            <div class="mt-3">
+                                <label class="form-label small text-muted d-flex justify-content-between">
+                                    <span>Username & Password</span>
+                                    <span class="badge bg-dark">not recommended</span>
+                                </label>
+                                <input type="text" class="form-control" placeholder="Username" id="username">
+                                <input type="password" class="form-control" placeholder="Password" id="password">
+                            </div>
+                            <button class="btn btn-primary mt-3 w-100" onclick="save()">Try Again</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/9.2.0/mdb.umd.min.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
+        <script async>
+            const bgPrimary = '';
+            const bgSuccess = 'rgba(var(--mdb-success-rgb), var(--mdb-bg-opacity))';
+            const bgDanger = 'rgba(var(--mdb-danger-rgb), var(--mdb-bg-opacity))';
+
+            const toast = (message, background) => {
+                Toastify({
+                    text: message,
+                    style: {
+                        'background': `rgba(var(--mdb-${background}-rgb), var(--mdb-bg-opacity))`,
+                        'margin-left': 'auto',
+                        'margin-right': 'auto'
+                    }
+                }).showToast();
+            };
+
+            const ordinal = (i) => {
+                let j = i % 10;
+                let k = i % 100;
+                if (j === 1 && k !== 11) return i + "st";
+                if (j === 2 && k !== 12) return i + "nd";
+                if (j === 3 && k !== 13) return i + "rd";
+                return i + "th";
+            }
+
+            window.onload = () => {
+                // Download
+                const url = document.getElementById("url");
+                const status = document.getElementById("status");
+                const progress = document.getElementById("progress");
+
+                const troubleshooting = {};
+
+                window.submit = url.onkeydown = async (event) => {
+                    if (event) {
+                        if (event.key !== "Enter") return;
+                        event.preventDefault();
+                    }
+
+                    if (url.disabled) return;
+
+                    try { new URL(url.value); } 
+                    catch (_) {
+                        toast('Not a valid video.', 'danger');
+                        return;
+                    }
+
+                    url.disabled = true;
+                    progress.style.width = "0%";
+
+                    let jobId = null;
+                    let jobLastAt = 0;
+
+                    const getStatus = async () => {
+                        const result = await (await fetch(`download/${jobId}`)).json();
+                        console.log(result);
+
+                        status.style.display = "block";
+
+                        url.disabled = result.status === "working";
+                        if (result.status === "waiting") progress.style.width = "0%";
+                        else progress.style.width = result.status === "working" ? result.progress + "%" : "100%";
+
+                        progress.classList.toggle("progress-bar-animated", result.status === "working");
+                        progress.classList.toggle("progress-bar-striped", result.status === "working");
+                        progress.classList.toggle("bg-danger", result.status === "failed" || result.status === "error");
+                        
+                        if (result.status === "waiting" || result.status === "working") {
+                            if (result.status === "waiting" && result.at !== jobLastAt) {
+                                toast(`You're ${ordinal(result.at)} in line...`, 'primary');
+                                jobLastAt = result.at;
+                            }
+                            else if (result.status === "working" && jobLastAt !== 0) {
+                                toast('Now getting your video...', 'primary');
+                                jobLastAt = 0;
+                            }
+                            setTimeout(getStatus, 1000);
+                        }
+                        else if (result.status === "finished") {
+                            toast('Now downloading...', 'primary');
+                            window.open(result.download, "_blank");
+                        }
+                        else if (result.status === "failed") {
+                            toast("Failed to get video. Try troubleshooting.", 'danger');
+                            troubleshoot(true);
+                        }
+                        else if (result.status === "error") {
+                            toast("An error occurred. Please try again later.", 'danger');
+                        }
+                    };
+                    
+                    const host = new URL(url.value).host.replace('www.', '').replace('.', '_');
+                    const result = await (await fetch(`download`, {
+                        method: 'post',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: url.value, ...(troubleshooting[host] || {}) })
+                    })).json();
+                    console.log(result);
+                    jobId = result.id;
+                    getStatus(jobId);
+                }
+
+                // Troubleshoot
+                const getCookie = (name) => {
+                    const value = `; ${document.cookie}`;
+                    const parts = value.split(`; ${name}=`);
+                    if (parts.length === 2) return decodeURIComponent(parts.pop().split(';').shift());
+                };
+
+                const username = document.getElementById("username");
+                const password = document.getElementById("password");
+                const cookies = document.getElementById("cookies");
+
+                function troubleshoot(toggle) {
+                    document.getElementById("main").style.display = toggle ? "none" : "block";
+                    document.getElementById("troubleshoot").style.display = toggle ? "block" : "none";
+
+                    if (toggle) {
+                        const host = new URL(url.value).host.replace('www.', '').replace('.', '_');
+
+                        username.value = getCookie(`${host}_username`) || "";
+                        password.value = getCookie(`${host}_password`) || "";
+                        cookies.value = getCookie(`${host}_cookies`) || "";
+
+                        window.save = () => {
+                            document.cookie = `${host}_username=${encodeURIComponent(username.value)}; path=/`;
+                            document.cookie = `${host}_password=${encodeURIComponent(password.value)}; path=/`;
+                            document.cookie = `${host}_cookies=${encodeURIComponent(cookies.value)}; path=/`;
+
+                            troubleshooting[host] = {
+                                username: username.value,
+                                password: password.value,
+                                cookies: cookies.value
+                            };
+
+                            troubleshoot(false);
+                            submit();
+                        };
+                    }
+                }
+            };
+        </script>
+    </body>
+</html>
