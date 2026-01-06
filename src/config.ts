@@ -12,6 +12,7 @@ export interface Config {
   workers: {
     max: number;
     loopMs: number;
+    cleanupMs: number;
   };
   web: {
     host?: string;
@@ -38,6 +39,7 @@ const defaults: Config = {
   workers: {
     max: 2,
     loopMs: 1000,
+    cleanupMs: 300000,
   },
   web: {
     host: undefined,
@@ -83,6 +85,9 @@ function loadFromEnv(): PartialConfig {
       loopMs: process.env.V10M_WORKERS_LOOP_MS
         ? parseInt(process.env.V10M_WORKERS_LOOP_MS, 10)
         : undefined,
+      cleanupMs: process.env.V10M_WORKERS_CLEANUP_MS
+        ? parseInt(process.env.V10M_WORKERS_CLEANUP_MS, 10)
+        : undefined,
     },
     web: {
       host: process.env.V10M_WEB_HOST,
@@ -111,6 +116,9 @@ function merge(...configs: PartialConfig[]): Config {
       }
       if (config.workers.loopMs !== undefined) {
         result.workers.loopMs = config.workers.loopMs;
+      }
+      if (config.workers.cleanupMs !== undefined) {
+        result.workers.cleanupMs = config.workers.cleanupMs;
       }
     }
     if (config.web) {

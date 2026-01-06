@@ -9,7 +9,6 @@ import { ConfigManager, type PartialConfig } from '../../config.js';
 import { YTdlpJob, FFmpegJob, JobStatus } from '../../jobs/index.js';
 import { WorkerManager } from '../../workers/index.js';
 
-
 /**
  * Public-facing worker state
  */
@@ -64,11 +63,15 @@ export class Server {
 
       const downloadOutput = randomBytes(16).toString('hex') + '.mp4';
       const transcodeOutput = randomBytes(16).toString('hex') + '.mp4';
-      
-      const targetSize = !isNaN(parseInt(body.targetSize, 10)) ? parseInt(body.targetSize, 10) : undefined;
+
+      const targetSize = !isNaN(parseInt(body.targetSize, 10))
+        ? parseInt(body.targetSize, 10)
+        : undefined;
       const maxTargetSize = WEB_TARGET_SIZE_LIST[WEB_TARGET_SIZE_LIST.length - 1];
       if (!targetSize || targetSize <= 0 || targetSize > maxTargetSize) {
-         return reply.code(400).send({ status: 'error', details: `Size must be between 1 and ${maxTargetSize}` });
+        return reply
+          .code(400)
+          .send({ status: 'error', details: `Size must be between 1 and ${maxTargetSize}` });
       }
 
       console.log(`Received download request: ${body.url}, target size: ${targetSize} MB`);

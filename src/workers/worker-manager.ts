@@ -51,12 +51,21 @@ export class WorkerManager {
   getWorkerPositionWaiting(id: bigint | string) {
     return this.workers.findPositionWaiting(id);
   }
-  test() {
-    console.log(this.configManager.config.workers.max);
-  }
 
   start() {
     setInterval(() => {
+      for (const { id, item: worker } of this.workers) {
+        const cleanupTime =
+          this.snowyflake.deconstruct(id).timestamp +
+          BigInt(this.configManager.config.workers.cleanupMs);
+
+        if (BigInt(Date.now()) > cleanupTime && !worker.working) {
+          console.log(`Cleaning up job ${id}...`);
+          worker.jobs.forEach((job) => job.cleanup());
+          this.workers.delete(id);
+        }
+      }
+
       let next;
       if (
         this.workers.getCountWorking() < this.configManager.config.workers.max &&
