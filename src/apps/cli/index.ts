@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-import { Program } from './program.js';
+import { CliProgram } from './program.js';
 
-export { Program };
+export * from './program.js';
 
 // Execute if run directly
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const program = new Program();
+  const program = new CliProgram();
   program.run(process.argv);
 }

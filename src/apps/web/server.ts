@@ -12,7 +12,7 @@ import { WorkerManager } from '../../workers/index.js';
 /**
  * Public-facing worker state
  */
-export interface WorkerState {
+export interface WebWorkerState {
   id: string;
   status: 'waiting' | 'working' | 'finished' | 'failed';
   progress?: number;
@@ -25,10 +25,10 @@ export interface WorkerState {
 /**
  * v10m web server
  */
-export class Server {
+export class WebServer {
   configs: ConfigManager;
   workers: WorkerManager;
-  workerStates: Map<bigint, WorkerState>;
+  workerStates: Map<bigint, WebWorkerState>;
   fastify: fastify.FastifyInstance;
 
   constructor(configOverrides: PartialConfig = {}) {
@@ -36,7 +36,7 @@ export class Server {
 
     console.log('Starting server with config:', this.configs.config);
     this.workers = new WorkerManager(this.configs);
-    this.workerStates = new Map<bigint, WorkerState>();
+    this.workerStates = new Map<bigint, WebWorkerState>();
 
     this.fastify = fastify({
       logger: true,

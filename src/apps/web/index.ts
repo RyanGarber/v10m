@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
-import { Program } from './program.js';
-import { Server } from './server.js';
+import { WebProgram } from './program.js';
 
-export { Program, Server };
+export * from './program.js';
+export * from './server.js';
 
 // Execute if run directly
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const program = new Program();
+  const program = new WebProgram();
   program.run(process.argv);
 }

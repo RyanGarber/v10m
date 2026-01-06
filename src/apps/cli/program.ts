@@ -9,7 +9,7 @@ import pkg from '../../../package.json' with { type: 'json' };
 /**
  * v10m CLI
  */
-export class Program {
+export class CliProgram {
   private configs: ConfigManager;
   private workers: WorkerManager;
   private program: Command;
