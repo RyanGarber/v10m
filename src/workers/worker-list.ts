@@ -1,4 +1,4 @@
-import { type Job } from "../jobs/index.js";
+import { type Job } from '../jobs/index.js';
 
 /**
  * Worker

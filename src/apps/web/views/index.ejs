@@ -136,8 +136,13 @@
                             setTimeout(getStatus, 1000);
                         }
                         else if (result.status === "finished") {
-                            toast('Now downloading...', 'primary');
-                            window.open(result.download, "_blank");
+                            toast('Now downloading!', 'primary');
+                            const a = document.createElement("a");
+                            a.href = result.downloadFile;
+                            a.download = "";
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
                         }
                         else if (result.status === "failed") {
                             toast("Failed to get video. Try troubleshooting.", 'danger');

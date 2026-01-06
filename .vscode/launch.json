@@ -1,51 +1,51 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Project",
-            "type": "node",
-            "request": "launch",
-            "program": "${workspaceFolder}/src/index.ts",
-            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/tsx",
-            "skipFiles": ["<node_internals>/**"],
-            "console": "integratedTerminal",
-            "internalConsoleOptions": "neverOpen"
-        },
-        {
-            "name": "Project (Debug)",
-            "type": "node",
-            "request": "launch",
-            "program": "${workspaceFolder}/src/index.ts",
-            "env": {
-                "V10M_DEBUG": "true"
-            },
-            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/tsx",
-            "skipFiles": ["<node_internals>/**"],
-            "console": "integratedTerminal",
-            "internalConsoleOptions": "neverOpen"
-        },
-        {
-            "name": "File",
-            "type": "node",
-            "request": "launch",
-            "program": "${file}",
-            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/tsx",
-            "skipFiles": ["<node_internals>/**"],
-            "console": "integratedTerminal",
-            "internalConsoleOptions": "neverOpen"
-        },
-        {
-            "name": "File (Debug)",
-            "type": "node",
-            "request": "launch",
-            "program": "${file}",
-            "env": {
-                "V10M_DEBUG": "true"
-            },
-            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/tsx",
-            "skipFiles": ["<node_internals>/**"],
-            "console": "integratedTerminal",
-            "internalConsoleOptions": "neverOpen"
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Project",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/index.ts",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/tsx",
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "Project (Debug)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/index.ts",
+      "env": {
+        "V10M_DEBUG": "true"
+      },
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/tsx",
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "File",
+      "type": "node",
+      "request": "launch",
+      "program": "${file}",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/tsx",
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "File (Debug)",
+      "type": "node",
+      "request": "launch",
+      "program": "${file}",
+      "env": {
+        "V10M_DEBUG": "true"
+      },
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/tsx",
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    }
+  ]
 }

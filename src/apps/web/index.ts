@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import { Command } from "commander";
-import { type PartialConfig } from "../../config.js";
-import { Server } from "./server.js";
+import { Command } from 'commander';
+import { type PartialConfig } from '../../config.js';
+import { Server } from './server.js';
 
 export { Server };
 
@@ -11,11 +11,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const program = new Command();
 
   program
-    .option("--debug", "enable debug mode")
-    .option("--workers <number>", "maximum number of workers", parseInt)
-    .option("--workers-loop <ms>", "worker loop interval in ms", parseInt)
-    .option("-h, --host <host>", "server host")
-    .option("-p, --port <port>", "server port", parseInt)
+    .option('--debug', 'enable debug mode')
+    .option('--workers <number>', 'maximum number of workers', parseInt)
+    .option('--workers-loop <ms>', 'worker loop interval in ms', parseInt)
+    .option('-h, --host <host>', 'server host')
+    .option('-p, --port <port>', 'server port', parseInt)
     .action((options) => {
       const overrides: PartialConfig = {};
 

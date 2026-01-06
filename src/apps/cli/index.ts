@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { Program } from "./program.js";
+import { Program } from './program.js';
 
 export { Program };
 

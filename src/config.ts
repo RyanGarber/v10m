@@ -1,6 +1,6 @@
-import dotenv from "dotenv";
-import fs from "fs";
-import path from "path";
+import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 
 dotenv.config();
 
@@ -26,8 +26,8 @@ export interface Config {
  */
 export type PartialConfig = Partial<{
   debug: boolean;
-  workers: Partial<Config["workers"]>;
-  web: Partial<Config["web"]>;
+  workers: Partial<Config['workers']>;
+  web: Partial<Config['web']>;
 }>;
 
 /**
@@ -43,7 +43,7 @@ const defaults: Config = {
     host: undefined,
     port: undefined,
     path: undefined,
-    root: "/",
+    root: '/',
   },
 };
 
@@ -53,14 +53,14 @@ const defaults: Config = {
  */
 function loadFromFile(): PartialConfig {
   const configPaths = [
-    path.join(process.cwd(), "v10m.config.json"),
-    path.join(process.env.HOME ?? "~", ".v10m.config.json"),
+    path.join(process.cwd(), 'v10m.config.json'),
+    path.join(process.env.HOME ?? '~', '.v10m.config.json'),
   ];
 
   for (const configPath of configPaths) {
     if (fs.existsSync(configPath)) {
       try {
-        const content = fs.readFileSync(configPath, "utf-8");
+        const content = fs.readFileSync(configPath, 'utf-8');
         return JSON.parse(content);
       } catch (err) {
         console.warn(`Failed to parse config file ${configPath}:`, err);
@@ -77,20 +77,16 @@ function loadFromFile(): PartialConfig {
  */
 function loadFromEnv(): PartialConfig {
   return {
-    debug: process.env.V10M_DEBUG === "true" ? true : undefined,
+    debug: process.env.V10M_DEBUG === 'true' ? true : undefined,
     workers: {
-      max: process.env.V10M_WORKERS_MAX
-        ? parseInt(process.env.V10M_WORKERS_MAX)
-        : undefined,
+      max: process.env.V10M_WORKERS_MAX ? parseInt(process.env.V10M_WORKERS_MAX) : undefined,
       loopMs: process.env.V10M_WORKERS_LOOP_MS
         ? parseInt(process.env.V10M_WORKERS_LOOP_MS)
         : undefined,
     },
     web: {
       host: process.env.V10M_WEB_HOST,
-      port: process.env.V10M_WEB_PORT
-        ? parseInt(process.env.V10M_WEB_PORT)
-        : undefined,
+      port: process.env.V10M_WEB_PORT ? parseInt(process.env.V10M_WEB_PORT) : undefined,
       path: process.env.V10M_WEB_PATH,
       root: process.env.V10M_WEB_ROOT,
     },
@@ -129,10 +125,7 @@ function merge(...configs: PartialConfig[]): Config {
       }
       if (config.web.root !== undefined) {
         result.web.root =
-          config.web.root.slice(
-            0,
-            config.web.root.endsWith("/") ? -1 : undefined,
-          ) || "/";
+          config.web.root.slice(0, config.web.root.endsWith('/') ? -1 : undefined) || '/';
       }
     }
   }

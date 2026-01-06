@@ -1,7 +1,7 @@
-import { Snowyflake } from "snowyflake";
-import { type Job, JobStatus } from "../jobs/index.js";
-import { type WorkerListItem, WorkerList } from "./worker-list.js";
-import type { ConfigManager } from "../config.js";
+import { Snowyflake } from 'snowyflake';
+import { type Job, JobStatus } from '../jobs/index.js';
+import { type WorkerListItem, WorkerList } from './worker-list.js';
+import type { ConfigManager } from '../config.js';
 
 /**
  * Worker manager
@@ -17,10 +17,7 @@ export class WorkerManager {
     this.configManager = configManager;
   }
 
-  createWorker(
-    jobs: Job[],
-    callback?: (job: number, status: JobStatus, data: any) => void,
-  ) {
+  createWorker(jobs: Job[], callback?: (job: number, status: JobStatus, data: any) => void) {
     const worker: WorkerListItem = {
       jobs: jobs,
       working: false,
@@ -60,13 +57,9 @@ export class WorkerManager {
 
   start() {
     setInterval(() => {
-      console.log(
-        `Processing queue (${this.workers.getCountTotal()} total, ${this.workers.getCountWaiting()} waiting)...`,
-      );
       let next;
       if (
-        this.workers.getCountWorking() <
-          this.configManager.config.workers.max &&
+        this.workers.getCountWorking() < this.configManager.config.workers.max &&
         this.workers.getCountWaiting() > 0
       ) {
         if ((next = this.workers.getNextWaiting())) {

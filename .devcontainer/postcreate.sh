@@ -5,8 +5,8 @@
 npm install
 
 # Install PO token plugin for yt-dlp
-sudo /usr/local/py-utils/venvs/yt-dlp/bin/python -m pip install bgutil-ytdlp-pot-provider
 sudo /usr/local/py-utils/venvs/yt-dlp/bin/python -m pip install --upgrade yt-dlp[default,curl-cffi]
+sudo /usr/local/py-utils/venvs/yt-dlp/bin/python -m pip install bgutil-ytdlp-pot-provider
 
 # Build PO token provider
 cd ~
