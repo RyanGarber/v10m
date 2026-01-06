@@ -1,3 +1,4 @@
+* Add pure transcode option
 * Add VPN option
 * Use progress from yt-dlp stderr?
 * Transcode all videos to <10MB
