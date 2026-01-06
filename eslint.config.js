@@ -46,6 +46,6 @@ export default [
     },
   },
   {
-    ignores: ["dist/**", "node_modules/**", "**/*.js", "**/*.mjs", "**/*.test.ts"],
+    ignores: ["dist/**", "node_modules/**", "**/*.js", "**/*.cjs", "**/*.mjs", "**/*.test.ts"],
   },
 ];
