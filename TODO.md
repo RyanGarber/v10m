@@ -1,3 +1,4 @@
 - Add VPN option
 - Add pure transcode option
 - Use progress from yt-dlp stderr?
+- Workers not exiting on failure in apps/web

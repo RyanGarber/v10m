@@ -1,5 +1,7 @@
 import fs from 'fs';
 import ejs from 'ejs';
+import url from 'url';
+import path from 'path';
 import fastify from 'fastify';
 import fastifyCookie from '@fastify/cookie';
 import { randomBytes } from 'node:crypto';
@@ -152,6 +154,20 @@ export class WebServer {
         return reply.send(stream);
       }
     );
+
+    const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
+    for (const file of fs.readdirSync(path.join(__dirname, 'static'))) {
+      this.fastify.get(`${this.configs.config.web.path}/${file}`, async (request, reply) => {
+        const stream = fs.createReadStream(path.join(__dirname, 'static', file));
+        const types = { '.css': 'text/css', '.js': 'application/javascript', '.png': 'image/png' };
+        for (const [ext, type] of Object.entries(types)) {
+          if (file.endsWith(ext)) {
+            reply.type(type);
+          }
+        }
+        return reply.send(stream);
+      });
+    }
   }
 
   start() {
