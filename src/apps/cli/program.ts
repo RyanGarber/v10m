@@ -100,7 +100,7 @@ export class Program {
       });
   }
 
-  public run(argv: string[]): void {
+  run(argv: string[]): void {
     this.program.parse(argv);
   }
 }

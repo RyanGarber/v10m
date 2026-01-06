@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { type ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import { Job, JobStatus } from './base-job.js';
-import { FFMPEG_AUDIO_BITRATE, FFMPEG_VIDEO_BITRATE_BUFFER, NVIDIA_FFMPEG_ARGS } from '../consts.js';
+import { FFMPEG_AUDIO_BITRATE, FFMPEG_VIDEO_BITRATE_BUFFER, FFMPEG_NVIDIA_ARGS } from '../consts.js';
 
 /**
  * FFmpeg job options
@@ -75,12 +75,12 @@ export class FFmpegJob extends Job {
 
         // Prepare ffmpeg arguments
         const ffmpegArgs = [
-          ...(nvidiaExit === 0 ? NVIDIA_FFMPEG_ARGS.INPUT.split(' ') : []),
+          ...(nvidiaExit === 0 ? FFMPEG_NVIDIA_ARGS.INPUT.split(' ') : []),
           '-i',
           this.inputFile,
           '-progress',
           'pipe:2',
-          ...(nvidiaExit === 0 ? NVIDIA_FFMPEG_ARGS.OUTPUT.split(' ') : []),
+          ...(nvidiaExit === 0 ? FFMPEG_NVIDIA_ARGS.OUTPUT.split(' ') : []),
           '-b:v',
           `${Math.floor(bitrate)}k`,
           '-b:a',
@@ -114,7 +114,7 @@ export class FFmpegJob extends Job {
 
           const timeString = data.match(/time=(\d{2}):(\d{2}):(\d{2}\.\d{2})/);
           if (timeString) {
-            const timeSeconds = parseInt(timeString[1]) * 3600 + parseInt(timeString[2]) * 60 + parseFloat(timeString[3]);
+            const timeSeconds = parseInt(timeString[1], 10) * 3600 + parseInt(timeString[2], 10) * 60 + parseFloat(timeString[3]);
             const progress = Math.min(Math.round((timeSeconds / durationSeconds) * 100), 100);
 
             this.emit(JobStatus.Progress, { percent: progress });

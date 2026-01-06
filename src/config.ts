@@ -79,14 +79,14 @@ function loadFromEnv(): PartialConfig {
   return {
     debug: process.env.V10M_DEBUG === 'true' ? true : undefined,
     workers: {
-      max: process.env.V10M_WORKERS_MAX ? parseInt(process.env.V10M_WORKERS_MAX) : undefined,
+      max: process.env.V10M_WORKERS_MAX ? parseInt(process.env.V10M_WORKERS_MAX, 10) : undefined,
       loopMs: process.env.V10M_WORKERS_LOOP_MS
-        ? parseInt(process.env.V10M_WORKERS_LOOP_MS)
+        ? parseInt(process.env.V10M_WORKERS_LOOP_MS, 10)
         : undefined,
     },
     web: {
       host: process.env.V10M_WEB_HOST,
-      port: process.env.V10M_WEB_PORT ? parseInt(process.env.V10M_WEB_PORT) : undefined,
+      port: process.env.V10M_WEB_PORT ? parseInt(process.env.V10M_WEB_PORT, 10) : undefined,
       path: process.env.V10M_WEB_PATH,
       root: process.env.V10M_WEB_ROOT,
     },

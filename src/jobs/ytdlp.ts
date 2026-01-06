@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { type ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import { Job, JobStatus } from './base-job.js';
-import { NVIDIA_FFMPEG_ARGS } from '../consts.js';
+import { FFMPEG_NVIDIA_ARGS } from '../consts.js';
 
 /**
  * YT-dlp job options
@@ -76,9 +76,9 @@ export class YTdlpJob extends Job {
         ...(nvidiaExit === 0
           ? [
               '--postprocessor-args',
-              `ffmpeg_i:${NVIDIA_FFMPEG_ARGS.INPUT}`,
+              `ffmpeg_i:${FFMPEG_NVIDIA_ARGS.INPUT}`,
               '--postprocessor-args',
-              `ffmpeg_o:${NVIDIA_FFMPEG_ARGS.OUTPUT}`,
+              `ffmpeg_o:${FFMPEG_NVIDIA_ARGS.OUTPUT}`,
             ]
           : []),
       ];

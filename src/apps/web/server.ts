@@ -2,16 +2,18 @@ import fs from 'fs';
 import ejs from 'ejs';
 import fastify from 'fastify';
 import fastifyCookie from '@fastify/cookie';
-
-import { ConfigManager, type PartialConfig } from '../../config.js';
-import { WorkerManager } from '../../workers/index.js';
-import { YTdlpJob, FFmpegJob, JobStatus } from '../../jobs/index.js';
 import { randomBytes } from 'node:crypto';
 
+import { WEB_DEFAULT_DOWNLOAD_FILENAME, WEB_TARGET_SIZE_LIST } from '../../consts.js';
+import { ConfigManager, type PartialConfig } from '../../config.js';
+import { YTdlpJob, FFmpegJob, JobStatus } from '../../jobs/index.js';
+import { WorkerManager } from '../../workers/index.js';
+
+
 /**
- * v10m web server
+ * Public-facing worker state
  */
-export interface WorkerStates {
+export interface WorkerState {
   id: string;
   status: 'waiting' | 'working' | 'finished' | 'failed';
   progress?: number;
@@ -21,10 +23,13 @@ export interface WorkerStates {
   error?: any;
 }
 
+/**
+ * v10m web server
+ */
 export class Server {
   configs: ConfigManager;
   workers: WorkerManager;
-  workerStates: Map<bigint, WorkerStates>;
+  workerStates: Map<bigint, WorkerState>;
   fastify: fastify.FastifyInstance;
 
   constructor(configOverrides: PartialConfig = {}) {
@@ -32,7 +37,7 @@ export class Server {
 
     console.log('Starting server with config:', this.configs.config);
     this.workers = new WorkerManager(this.configs);
-    this.workerStates = new Map<bigint, WorkerStates>();
+    this.workerStates = new Map<bigint, WorkerState>();
 
     this.fastify = fastify({
       logger: true,
@@ -51,7 +56,7 @@ export class Server {
 
     this.fastify.get(`${this.configs.config.web.root}/`, async (request, reply) => {
       reply.header('Content-Type', 'text/html');
-      return ejs.renderFile('src/apps/web/views/index.ejs');
+      return ejs.renderFile('src/apps/web/views/index.ejs', { targetSizes: WEB_TARGET_SIZE_LIST });
     });
 
     this.fastify.post(`${this.configs.config.web.root}/download`, async (request, reply) => {
@@ -60,18 +65,20 @@ export class Server {
       const downloadOutput = randomBytes(16).toString('hex') + '.mp4';
       const transcodeOutput = randomBytes(16).toString('hex') + '.mp4';
       
-      const size = parseInt(body.size);
-      if (isNaN(size) || size <= 0 || size > 100000) {
-         return reply.code(400).send({ status: 'error', details: 'Size must be between 1 and 100000' });
+      const targetSize = !isNaN(parseInt(body.targetSize, 10)) ? parseInt(body.targetSize, 10) : undefined;
+      const maxTargetSize = WEB_TARGET_SIZE_LIST[WEB_TARGET_SIZE_LIST.length - 1];
+      if (!targetSize || targetSize <= 0 || targetSize > maxTargetSize) {
+         return reply.code(400).send({ status: 'error', details: `Size must be between 1 and ${maxTargetSize}` });
       }
 
+      console.log(`Received download request: ${body.url}, target size: ${targetSize} MB`);
       const jobs = [
         new YTdlpJob(body.url, `/tmp/${downloadOutput}`, {
           ...body,
           debug: this.configs.config.debug,
         }),
         new FFmpegJob(`/tmp/${downloadOutput}`, `/tmp/${transcodeOutput}`, {
-          fileSizeKilobytes: body.size ? size : undefined,
+          fileSizeKilobytes: targetSize ? targetSize * 1024 : undefined,
           debug: this.configs.config.debug,
         }),
       ];
@@ -79,7 +86,7 @@ export class Server {
       const id = this.workers.createWorker(jobs, (job: number, status: JobStatus, data: any) => {
         console.log(`Worker: ${id}, job: ${typeof job}, status: ${status}`, data);
         if (job === 1 && status === JobStatus.Success) {
-          const url = `${request.protocol}://${request.headers.host}${request.url}/${id}/v10m-download.mp4`;
+          const url = `${request.protocol}://${request.headers.host}${request.url}/${id}/${WEB_DEFAULT_DOWNLOAD_FILENAME}.mp4`;
           this.workerStates.set(id, {
             id: id.toString(),
             status: 'finished',

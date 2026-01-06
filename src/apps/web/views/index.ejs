@@ -14,12 +14,11 @@
                 <div class="card" id="main">
                     <div class="card-body">
                         <ul class="nav nav-tabs w-100 border-bottom" role="tablist">
-                            <li class="nav-item flex-fill">
-                                <a class="nav-link py-3 active" id="tab-10mb" href="#" data-size="10000">10MB</a>
-                            </li>
-                            <li class="nav-item flex-fill">
-                                <a class="nav-link py-3" id="tab-25mb" href="#" data-size="25000">25MB</a>
-                            </li>
+                            <% targetSizes.forEach((size, index) => { %>
+                                <li class="nav-item flex-fill">
+                                    <a class="nav-link py-3 <%= index === 0 ? 'active' : '' %>" href="#" data-size="<%= size %>"><%= size %>MB</a>
+                                </li>
+                            <% }); %>
                         </ul>
                         <div class="p-3" style="background: rgba(0, 0, 0, 0.1)">
                             <div class="input-group">
@@ -175,7 +174,7 @@
                     const result = await (await fetch(`download`, {
                         method: 'post',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ url: url.value, size: getTargetSize(), ...(troubleshooting[host] || {}) })
+                        body: JSON.stringify({ url: url.value, targetSize: getTargetSize(), ...(troubleshooting[host] || {}) })
                     })).json();
 
                     console.log(result);

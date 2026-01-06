@@ -1,7 +1,7 @@
 {
   "name": "@ryangarber/v10m",
   "description": "A versatile media downloader with built-in compression.",
-  "version": "predev",
+  "version": "0.1.0",
   "type": "module",
   "main": "./src/index.ts",
   "scripts": {
