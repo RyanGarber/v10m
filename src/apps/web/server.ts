@@ -53,12 +53,12 @@ export class WebServer {
       reply.status(500).send({ status: 'error', details: 'Internal Server Error' });
     });
 
-    this.fastify.get(`${this.configs.config.web.root}/`, async (request, reply) => {
+    this.fastify.get(`${this.configs.config.web.path}/`, async (request, reply) => {
       reply.header('Content-Type', 'text/html');
       return ejs.renderFile('src/apps/web/views/index.ejs', { targetSizes: WEB_TARGET_SIZE_LIST });
     });
 
-    this.fastify.post(`${this.configs.config.web.root}/download`, async (request, reply) => {
+    this.fastify.post(`${this.configs.config.web.path}/download`, async (request, reply) => {
       const body = request.body as any; // TODO fix typing -- extend YTdlpJobOptions?
 
       const downloadOutput = randomBytes(16).toString('hex') + '.mp4';
@@ -121,7 +121,7 @@ export class WebServer {
       return this.workerStates.get(id);
     });
 
-    this.fastify.get(`${this.configs.config.web.root}/download/:id`, async (request, reply) => {
+    this.fastify.get(`${this.configs.config.web.path}/download/:id`, async (request, reply) => {
       const params = request.params as any; // TODO fix typing
       const workerState = this.workerStates.get(BigInt(params.id));
       if (!workerState) {
@@ -135,7 +135,7 @@ export class WebServer {
     });
 
     this.fastify.get(
-      `${this.configs.config.web.root}/download/:id/:filename`,
+      `${this.configs.config.web.path}/download/:id/:filename`,
       async (request, reply) => {
         const params = request.params as any; // TODO fix typing
         const workerState = this.workerStates.get(BigInt(params.id));

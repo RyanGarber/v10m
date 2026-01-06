@@ -15,10 +15,9 @@ export interface Config {
     cleanupMs: number;
   };
   web: {
-    host?: string;
-    port?: number;
-    path?: string;
-    root: string;
+    host: string;
+    port: number;
+    path: string;
   };
 }
 
@@ -42,10 +41,9 @@ const defaults: Config = {
     cleanupMs: 300000,
   },
   web: {
-    host: undefined,
-    port: undefined,
-    path: undefined,
-    root: '/',
+    host: '127.0.0.1',
+    port: 8080,
+    path: '/',
   },
 };
 
@@ -93,7 +91,6 @@ function loadFromEnv(): PartialConfig {
       host: process.env.V10M_WEB_HOST,
       port: process.env.V10M_WEB_PORT ? parseInt(process.env.V10M_WEB_PORT, 10) : undefined,
       path: process.env.V10M_WEB_PATH,
-      root: process.env.V10M_WEB_ROOT,
     },
   };
 }
@@ -129,11 +126,8 @@ function merge(...configs: PartialConfig[]): Config {
         result.web.port = config.web.port;
       }
       if (config.web.path !== undefined) {
-        result.web.path = config.web.path;
-      }
-      if (config.web.root !== undefined) {
-        result.web.root =
-          config.web.root.slice(0, config.web.root.endsWith('/') ? -1 : undefined) || '/';
+        result.web.path =
+          config.web.path.slice(0, config.web.path.endsWith('/') ? -1 : undefined) || '/';
       }
     }
   }

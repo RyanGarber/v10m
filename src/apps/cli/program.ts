@@ -26,24 +26,13 @@ export class CliProgram {
       .name('v10m')
       .description(pkg.description)
       .version(pkg.version + (process.env.V10M_DEV ? ` (debug)` : ''))
-      .option('--debug', 'enable debug mode')
-      .option('--workers <number>', 'maximum number of workers', parseInt)
-      .option('--workers-loop <ms>', 'worker loop interval in ms', parseInt)
+      .option('-d, --debug', 'enable debug mode')
       .hook('preAction', (thisCommand) => {
         const options = thisCommand.opts();
         const overrides: PartialConfig = {};
 
         if (options.debug) {
           overrides.debug = true;
-        }
-        if (options.workers) {
-          overrides.workers = { max: options.workers };
-        }
-        if (options.workersLoop) {
-          overrides.workers = {
-            ...overrides.workers,
-            loopMs: options.workersLoop,
-          };
         }
 
         this.configs.update(overrides);

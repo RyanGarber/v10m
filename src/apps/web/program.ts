@@ -9,9 +9,7 @@ export class WebProgram {
     this.program = new Command();
 
     this.program
-      .option('--debug', 'enable debug mode')
-      .option('--workers <number>', 'maximum number of workers', parseInt)
-      .option('--workers-loop <ms>', 'worker loop interval in ms', parseInt)
+      .option('-d, --debug', 'enable debug mode')
       .option('-h, --host <host>', 'server host')
       .option('-p, --port <port>', 'server port', parseInt)
       .action((options) => {
@@ -19,15 +17,6 @@ export class WebProgram {
 
         if (options.debug) {
           overrides.debug = true;
-        }
-        if (options.workers) {
-          overrides.workers = { max: options.workers };
-        }
-        if (options.workersLoop) {
-          overrides.workers = {
-            ...overrides.workers,
-            loopMs: options.workersLoop,
-          };
         }
 
         if (options.host || options.port) {
