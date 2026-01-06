@@ -54,10 +54,16 @@ export class Server {
       return ejs.renderFile('src/apps/web/views/index.ejs');
     });
 
-    this.fastify.post(`${this.configs.config.web.root}/download`, async (request, _) => {
+    this.fastify.post(`${this.configs.config.web.root}/download`, async (request, reply) => {
       const body = request.body as any; // TODO fix typing -- extend YTdlpJobOptions?
+
       const downloadOutput = randomBytes(16).toString('hex') + '.mp4';
       const transcodeOutput = randomBytes(16).toString('hex') + '.mp4';
+      
+      const size = parseInt(body.size);
+      if (isNaN(size) || size <= 0 || size > 100000) {
+         return reply.code(400).send({ status: 'error', details: 'Size must be between 1 and 100000' });
+      }
 
       const jobs = [
         new YTdlpJob(body.url, `/tmp/${downloadOutput}`, {
@@ -65,7 +71,7 @@ export class Server {
           debug: this.configs.config.debug,
         }),
         new FFmpegJob(`/tmp/${downloadOutput}`, `/tmp/${transcodeOutput}`, {
-          fileSizeKilobytes: 1024 * 10,
+          fileSizeKilobytes: body.size ? size : undefined,
           debug: this.configs.config.debug,
         }),
       ];

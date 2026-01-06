@@ -1,6 +1,7 @@
 import { ConfigManager } from './src/config.js';
 import * as jobs from './src/jobs/index.js';
 import * as workers from './src/workers/index.js';
+import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 
 const tests = ['https://youtube.com/shorts/DC8lWmZ3GpE?si=nrejbVZuowYsBElq'];
 
@@ -21,4 +22,7 @@ const jobLogs = (job: jobs.Job) => {
 const manager = new workers.WorkerManager(new ConfigManager({ debug: true }));
 manager.start();
 
-manager.createWorker([jobLogs(new jobs.YTdlpJob(tests[0], 'temp.test.mp4')), jobLogs(new jobs.FFmpegJob('temp.test.mp4', 'temp.test.out.mp4'))], workerLogs);
+manager.createWorker([
+  jobLogs(new jobs.YTdlpJob('https://asdasdas.com/asa', 'temp.test.mp4', { debug: true })),
+  jobLogs(new jobs.FFmpegJob('temp.test.mp4', 'temp.test.out.mp4', { fileSizeKilobytes: 10000, debug: true }))
+], workerLogs);

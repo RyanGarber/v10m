@@ -13,17 +13,25 @@
             <div class="subcontainer mx-auto" style="max-width: 600px">
                 <div class="card" id="main">
                     <div class="card-body">
-                        <h5 class="card-title">Download</h5>
-                        <p class="text-muted small">Enter a video URL to download.</p>
-                        <div class="input-group">
-                            <input type="text" class="form-control py-2" placeholder="Link to video" id="url">
-                            <button class="btn btn-link" type="button" onclick="submit()">
-                                <i class="fas fa-xl fa-cloud-arrow-down"></i>
-                            </button>
-                        </div>
-                        <div class="mt-4" style="display: none" id="status">
-                            <div class="progress">
-                                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%" id="progress"></div>
+                        <ul class="nav nav-tabs w-100 border-bottom" role="tablist">
+                            <li class="nav-item flex-fill">
+                                <a class="nav-link py-3 active" id="tab-10mb" href="#" data-size="10000">10MB</a>
+                            </li>
+                            <li class="nav-item flex-fill">
+                                <a class="nav-link py-3" id="tab-25mb" href="#" data-size="25000">25MB</a>
+                            </li>
+                        </ul>
+                        <div class="p-3" style="background: rgba(0, 0, 0, 0.1)">
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="Link to video" id="url">
+                                <button class="btn btn-link" type="button" onclick="submit()">
+                                    <i class="fas fa-xl fa-cloud-arrow-down"></i>
+                                </button>
+                            </div>
+                            <div class="mt-4" style="display: none" id="status">
+                                <div class="progress">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%" id="progress"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -89,6 +97,15 @@
                 const progress = document.getElementById("progress");
 
                 const troubleshooting = {};
+                const getTargetSize = () => document.querySelector('[data-size].active').dataset.size;
+
+                document.querySelectorAll('[data-size]').forEach(tab => {
+                    tab.onclick = (event) => {
+                        event.preventDefault();
+                        document.querySelectorAll('[data-size]').forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                    };
+                });
 
                 window.submit = url.onkeydown = async (event) => {
                     if (event) {
@@ -104,21 +121,22 @@
                         return;
                     }
 
-                    url.disabled = true;
-                    progress.style.width = "0%";
-
                     let jobId = null;
                     let jobLastAt = 0;
+
+                    url.disabled = true;
+                    status.style.display = "block";
+                    progress.style.width = "0%";
 
                     const getStatus = async () => {
                         const result = await (await fetch(`download/${jobId}`)).json();
                         console.log(result);
 
-                        status.style.display = "block";
-
-                        url.disabled = result.status === "working";
+                        url.disabled = ["waiting", "working"].includes(result.status);
+                        status.style.display = ["waiting", "working", "failed"].includes(result.status) ? "block" : "none";
                         if (result.status === "waiting") progress.style.width = "0%";
-                        else progress.style.width = result.status === "working" ? result.progress + "%" : "100%";
+                        else if (result.status === "failed") progress.style.width = "100%";
+                        else progress.style.width = result.progress + "%";
 
                         progress.classList.toggle("progress-bar-animated", result.status === "working");
                         progress.classList.toggle("progress-bar-striped", result.status === "working");
@@ -157,9 +175,11 @@
                     const result = await (await fetch(`download`, {
                         method: 'post',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ url: url.value, ...(troubleshooting[host] || {}) })
+                        body: JSON.stringify({ url: url.value, size: getTargetSize(), ...(troubleshooting[host] || {}) })
                     })).json();
+
                     console.log(result);
+                    
                     jobId = result.id;
                     getStatus(jobId);
                 }
