@@ -64,7 +64,7 @@ export class YTdlpJob extends Job {
     this.emit(JobStatus.Progress, { percent: 0 });
 
     const nvidia = spawn('nvidia-smi');
-    nvidia.on('close', (nvidiaExit) => {
+    nvidia.on('error', (_) => { /* Ignore errors */ }).on('close', (nvidiaExit) => {
       // Prepare yt-dlp arguments
       const ytdlpArgs = [
         '-o',

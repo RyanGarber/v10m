@@ -59,7 +59,7 @@ export class FFmpegJob extends Job {
     this.emit(JobStatus.Progress, { percent: 0 });
 
     const nvidia = spawn('nvidia-smi');
-    nvidia.on('close', (nvidiaExit) => {
+    nvidia.on('error', (_) => { /* Ignore errors */ }).on('close', (nvidiaExit) => {
       // Prepare ffmpeg arguments
       const ffmpegArgs = [
         ...(nvidiaExit === 0 ? NVIDIA_FFMPEG_ARGS.INPUT.split(' ') : []),
