@@ -14,8 +14,8 @@ jobs:
     - name: Build
       uses: devcontainers/ci@v0.3
       with:
-        imageName: ghcr.io/RyanGarber/v10m
-        cacheFrom: ghcr.io/RyanGarber/v10m
+        imageName: ghcr.io/ryangarber/v10m
+        cacheFrom: ghcr.io/ryangarber/v10m
         push: never
         runCmd: node build.js
         
