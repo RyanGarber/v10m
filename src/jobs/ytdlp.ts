@@ -55,7 +55,7 @@ export class YTdlpJob extends Job {
 
   start() {
     console.log(`Starting download from ${this.inputUrl} to ${this.outputFile}`);
-    this.outputs.push(this.outputFile);
+    this.files.push(this.outputFile);
     this.emit(JobStatus.Progress, { percent: 0 });
 
     const nvidia = spawn('nvidia-smi');
@@ -87,7 +87,7 @@ export class YTdlpJob extends Job {
         }
         if (this.options.cookies && this.options.cookies.length > 0) {
           fs.writeFileSync(`${this.outputFile}.cookies`, this.options.cookies);
-          this.outputs.push(`${this.outputFile}.cookies`);
+          this.files.push(`${this.outputFile}.cookies`);
           ytdlpArgs.push('--cookies', `${this.outputFile}.cookies`);
         }
 

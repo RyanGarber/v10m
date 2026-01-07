@@ -19,6 +19,9 @@ export interface Config {
     host: string;
     port: number;
     path: string;
+    maxUploadSizeMb: number;
+    targetSizeListMb: number[];
+    defaultDownloadFilename: string;
   };
 }
 
@@ -46,6 +49,9 @@ const defaults: Config = {
     host: '127.0.0.1',
     port: 8080,
     path: '/',
+    maxUploadSizeMb: 500,
+    targetSizeListMb: [10, 25, 50],
+    defaultDownloadFilename: 'video-download',
   },
 };
 
@@ -94,6 +100,13 @@ function loadFromEnv(): PartialConfig {
       host: process.env.V10M_WEB_HOST,
       port: process.env.V10M_WEB_PORT ? parseInt(process.env.V10M_WEB_PORT, 10) : undefined,
       path: process.env.V10M_WEB_PATH,
+      maxUploadSizeMb: process.env.V10M_WEB_MAX_UPLOAD_SIZE_MB
+        ? parseInt(process.env.V10M_WEB_MAX_UPLOAD_SIZE_MB, 10)
+        : undefined,
+      targetSizeListMb: process.env.V10M_WEB_TARGET_SIZE_LIST_MB
+        ? process.env.V10M_WEB_TARGET_SIZE_LIST_MB.split(',').map((s) => parseInt(s, 10))
+        : undefined,
+      defaultDownloadFilename: process.env.V10M_WEB_DEFAULT_DOWNLOAD_FILENAME,
     },
   };
 }
@@ -104,7 +117,7 @@ function loadFromEnv(): PartialConfig {
  * @returns final configuration
  */
 function merge(...configs: PartialConfig[]): Config {
-  const result: Config = JSON.parse(JSON.stringify(defaults));
+  const result: Config = { ...defaults };
 
   for (const config of configs) {
     if (config.debug !== undefined) {

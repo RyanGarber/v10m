@@ -57,7 +57,7 @@ export class FFmpegJob extends Job {
 
   start() {
     console.log(`Starting transcode from ${this.inputFile} to ${this.outputFile}`);
-    this.outputs.push(this.outputFile);
+    this.files.push(this.outputFile);
     this.emit(JobStatus.Progress, { percent: 0 });
 
     const nvidia = spawn('nvidia-smi');
@@ -69,6 +69,10 @@ export class FFmpegJob extends Job {
         // Get video duration
         const t = spawn('ffprobe', ['-i', this.inputFile]);
         t.stderr.on('data', (data) => {
+          if (this.#handle('ffprobe::out', data, /error[:|\]]/im.test(data))) {
+            return;
+          }
+
           const durationString = data.toString().match(/Duration: (\d+):(\d+):(\d+\.\d+)/);
           if (!durationString) {
             return;

@@ -25,7 +25,7 @@ export class WebProgram {
 
         const server = new WebServer(overrides);
         server.start();
-        server.workers.start();
+        server.processWorkers.start();
       });
   }
 

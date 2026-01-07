@@ -16,6 +16,7 @@
         <meta property="og:title" content="v10m" />
         <meta property="og:description" content="A versatile media downloader with built-in compression." />
         <meta property="og:image" content="<%= url %>/banner.png" />
+        <meta property="og:logo" content="<%= url %>/logo.png" />
         <meta property="twitter:card" content="summary_large_image" />
         <meta property="twitter:url" content="<%= url %>" />
         <meta property="twitter:title" content="v10m" />
@@ -30,7 +31,7 @@
         <div class="container my-5">
             <div class="subcontainer mx-auto" style="max-width: 600px">
                 <div class="text-center mb-4">
-                    <img src="<%= url %>/logo.png" alt="v10m" style="height: 100px;">
+                    <img src="<%= url %>/logo.png" alt="v10m" style="height: 75px;">
                 </div>
                 <div class="card" id="main">
                     <div class="card-body">
@@ -43,9 +44,17 @@
                         </ul>
                         <div class="p-3" style="background: rgba(0, 0, 0, 0.1)">
                             <div class="input-group">
-                                <input type="text" class="form-control" placeholder="Link to video" id="url">
+                                <input type="file" class="form-control border-0" id="file" accept=".mp4,.mkv,.webm,.avi,.mov,.flv,.wmv" onchange="submit('file')">
+                            </div>
+                            <div class="d-flex my-1 align-items-center">
+                                <hr class="flex-grow-1">
+                                <small class="d-block mx-2" style="color: #999">or</small>
+                                <hr class="flex-grow-1">
+                            </div>
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="link to video" id="url">
                                 <button class="btn btn-link" type="button" onclick="submit()">
-                                    <i class="fas fa-xl fa-cloud-arrow-down"></i>
+                                    get
                                 </button>
                             </div>
                             <div class="mt-4" style="display: none" id="status">
@@ -85,9 +94,9 @@
                 </div>
             </div>
         </div>
-
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/9.2.0/mdb.umd.min.js"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
-        <script type="text/javascript" src="<%= url %>/v10m.js" async></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.11.0/axios.min.js"></script>
+        <script type="text/javascript" src="<%= url %>/script.js" async></script>
     </body>
 </html>

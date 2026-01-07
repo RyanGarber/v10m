@@ -22,7 +22,14 @@
   },
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  "forwardPorts": [8000],
+  "forwardPorts": [8080],
+
+  "portsAttributes": {
+    "8080": {
+      "label": "v10m-web",
+      "onAutoForward": "openBrowserOnce"
+    }
+  },
 
   // Use 'postCreateCommand' to run commands after the container is created.
   "postCreateCommand": "./.devcontainer/postcreate.sh"

@@ -23,49 +23,58 @@ const ordinal = (i) => {
 };
 
 window.onload = () => {
-  // Download
   const url = document.getElementById('url');
+  const file = document.getElementById('file');
   const status = document.getElementById('status');
   const progress = document.getElementById('progress');
 
   const troubleshooting = {};
-  const getTargetSize = () => document.querySelector('[data-size].active').dataset.size;
+  const targetSizeButtons = document.querySelectorAll('[data-size]');
+  const getTargetSize = () => Array.from(targetSizeButtons).find(button => button.classList.contains('active')).dataset.size;
+  const disableControls = (disable) => {
+    url.disabled = disable;
+    file.disabled = disable;
+    targetSizeButtons.forEach((tab) => {
+      tab.classList.toggle('disabled', disable);
+    });
+  }
+  const areControlsDisabled = () => url.disabled || file.disabled || Array.from(targetSizeButtons).some(tab => tab.classList.contains('disabled'));
 
-  document.querySelectorAll('[data-size]').forEach((tab) => {
+  targetSizeButtons.forEach((tab) => {
     tab.onclick = (event) => {
       event.preventDefault();
-      document.querySelectorAll('[data-size]').forEach((t) => t.classList.remove('active'));
+      targetSizeButtons.forEach((t) => t.classList.remove('active'));
       tab.classList.add('active');
     };
   });
 
   window.submit = url.onkeydown = async (event) => {
-    if (event) {
+    // Process
+    const useFile = event === 'file';
+    if (!useFile && event) {
       if (event.key !== 'Enter') return;
-      event.preventDefault();
+      else event.preventDefault();
     }
 
-    if (url.disabled) return;
-
-    try {
-      new URL(url.value);
-    } catch (_) {
-      toast('Not a valid video.', 'danger');
-      return;
-    }
+    if (areControlsDisabled()) return;
 
     let jobId = null;
     let jobLastAt = 0;
 
-    url.disabled = true;
+    disableControls(true);
     status.style.display = 'block';
     progress.style.width = '0%';
 
-    const getStatus = async () => {
-      const result = await (await fetch(`download/${jobId}`)).json();
+    const getStatus = async (silent) => {
+      let result;
+      try {
+        result = (await axios.get(`process/${jobId}`)).data;
+      } catch (error) {
+        result = error.response.data;
+      }
       console.log(result);
 
-      url.disabled = ['waiting', 'working'].includes(result.status);
+      disableControls(['waiting', 'working'].includes(result.status));
       status.style.display = ['waiting', 'working', 'failed'].includes(result.status)
         ? 'block'
         : 'none';
@@ -79,6 +88,8 @@ window.onload = () => {
         'bg-danger',
         result.status === 'failed' || result.status === 'error'
       );
+
+      if (silent) return;
 
       if (result.status === 'waiting' || result.status === 'working') {
         if (result.status === 'waiting' && result.at !== jobLastAt) {
@@ -101,27 +112,35 @@ window.onload = () => {
         toast('Failed to get video. Try troubleshooting.', 'danger');
         troubleshoot(true);
       } else if (result.status === 'error') {
-        toast('An error occurred. Please try again later.', 'danger');
+        toast(result.details, 'danger');
       }
     };
 
-    const host = new URL(url.value).host.replace('www.', '').replace('.', '_');
-    const result = await (
-      await fetch(`download`, {
-        method: 'post',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: url.value,
-          targetSize: getTargetSize(),
-          ...(troubleshooting[host] || {}),
-        }),
-      })
-    ).json();
+    const formData = new FormData();
+    if (useFile) formData.append('file', file.files[0]);
+    else formData.append('url', url.value);
+    formData.append('targetSize', getTargetSize());
 
+    try {
+      const host = new URL(url.value).host.replace('www.', '').replace('.', '_');
+      for (const key in troubleshooting[host] || {}) {
+        formData.append(key, troubleshooting[host][key]);
+      }
+    } catch (e) {
+      // Ignore
+    }
+
+    let result;
+    try {
+      result = (await axios.post('./process', formData)).data;
+    } catch (error) {
+      result = error.response.data;
+    }
     console.log(result);
 
     jobId = result.id;
-    getStatus(jobId);
+    if (result.status === 'error') toast(result.details, 'danger');
+    getStatus(result.status === 'error');
   };
 
   // Troubleshoot

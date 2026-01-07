@@ -13,7 +13,7 @@ export enum JobStatus {
  * Base job class
  */
 export class Job extends EventTarget {
-  protected outputs: string[] = [];
+  protected files: string[] = [];
 
   on(status: JobStatus, callback: (data: any) => void) {
     this.addEventListener(status, (event: Event) => callback((event as CustomEvent).detail));
@@ -29,7 +29,7 @@ export class Job extends EventTarget {
   }
 
   cleanup() {
-    for (const file of this.outputs) {
+    for (const file of this.files) {
       try {
         if (fs.existsSync(file)) {
           fs.unlinkSync(file);
