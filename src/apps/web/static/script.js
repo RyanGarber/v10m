@@ -47,6 +47,7 @@ window.onload = () => {
       tab.classList.add('active');
     };
   });
+    console.log(window.url);
 
   window.submit = url.onkeydown = async (event) => {
     // Process
@@ -68,7 +69,7 @@ window.onload = () => {
     const getStatus = async (silent) => {
       let result;
       try {
-        result = (await axios.get(`process/${jobId}`)).data;
+        result = (await axios.get(`${window.url}/process/${jobId}`)).data;
       } catch (error) {
         result = error.response.data;
       }
@@ -132,7 +133,7 @@ window.onload = () => {
 
     let result;
     try {
-      result = (await axios.post('./process', formData)).data;
+      result = (await axios.post(`${window.url}/process`, formData)).data;
     } catch (error) {
       result = error.response.data;
     }
