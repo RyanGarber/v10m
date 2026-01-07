@@ -136,7 +136,7 @@ export class WebServer {
       const id = this.processWorkers.createWorker(jobs, (job: number, status: JobStatus, data: any) => {
         console.log(`Worker: ${id}, job: ${typeof job}, status: ${status}`, data);
         if ((useFile || job === 1) && status === JobStatus.Success) {
-          const downloadUrl = `${this.configs.config.web.url}${this.configs.config.web.path}/process/${id}/${this.configs.config.web.defaultDownloadFilename}.mp4`;
+          const downloadUrl = `${this.configs.config.web.url}/process/${id}/${this.configs.config.web.defaultDownloadFilename}.mp4`;
           this.processStates.set(id, {
             id: id.toString(),
             status: 'finished',
@@ -144,7 +144,7 @@ export class WebServer {
             downloadFile: downloadUrl,
           });
         } else if (status === JobStatus.Progress) {
-          const totalProgress = (useFile || job === 1 ? 50 : 0) + data.percent / 2;
+          const totalProgress = useFile ? (job === 1 ? 50 : 0) + data.percent / 2 : data.percent;
           this.processStates.set(id, {
             id: id.toString(),
             status: 'working',
