@@ -10,6 +10,7 @@ import { WEB_DEFAULT_DOWNLOAD_FILENAME, WEB_TARGET_SIZE_LIST } from '../../const
 import { ConfigManager, type PartialConfig } from '../../config.js';
 import { YTdlpJob, FFmpegJob, JobStatus } from '../../jobs/index.js';
 import { WorkerManager } from '../../workers/index.js';
+import pkg from '../../../package.json' with { type: 'json' };
 
 /**
  * Public-facing worker state
@@ -57,7 +58,11 @@ export class WebServer {
 
     this.fastify.get(`${this.configs.config.web.path}/`, async (request, reply) => {
       reply.header('Content-Type', 'text/html');
-      return ejs.renderFile('src/apps/web/views/index.ejs', { targetSizes: WEB_TARGET_SIZE_LIST });
+      return ejs.renderFile('src/apps/web/views/index.ejs', {
+        version: pkg.version,
+        url: this.configs.config.web.url,
+        targetSizes: WEB_TARGET_SIZE_LIST,
+      });
     });
 
     this.fastify.post(`${this.configs.config.web.path}/download`, async (request, reply) => {
@@ -91,12 +96,12 @@ export class WebServer {
       const id = this.workers.createWorker(jobs, (job: number, status: JobStatus, data: any) => {
         console.log(`Worker: ${id}, job: ${typeof job}, status: ${status}`, data);
         if (job === 1 && status === JobStatus.Success) {
-          const url = `${request.protocol}://${request.headers.host}${request.url}/${id}/${WEB_DEFAULT_DOWNLOAD_FILENAME}.mp4`;
+          const downloadUrl = `${this.configs.config.web.url}${this.configs.config.web.path}/download/${id}/${WEB_DEFAULT_DOWNLOAD_FILENAME}.mp4`;
           this.workerStates.set(id, {
             id: id.toString(),
             status: 'finished',
             tempFile: transcodeOutput,
-            downloadFile: url,
+            downloadFile: downloadUrl,
           });
         } else if (status === JobStatus.Progress) {
           const totalProgress = (job === 1 ? 50 : 0) + data.percent / 2;
@@ -159,7 +164,15 @@ export class WebServer {
     for (const file of fs.readdirSync(path.join(__dirname, 'static'))) {
       this.fastify.get(`${this.configs.config.web.path}/${file}`, async (request, reply) => {
         const stream = fs.createReadStream(path.join(__dirname, 'static', file));
-        const types = { '.css': 'text/css', '.js': 'application/javascript', '.png': 'image/png' };
+        const types = {
+          '.css': 'text/css',
+          '.js': 'application/javascript',
+          '.png': 'image/png',
+          '.svg': 'image/svg+xml',
+          '.ico': 'image/x-icon',
+          '.json': 'application/json',
+          '.webmanifest': 'application/manifest+json',
+        };
         for (const [ext, type] of Object.entries(types)) {
           if (file.endsWith(ext)) {
             reply.type(type);

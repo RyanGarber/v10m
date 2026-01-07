@@ -3,26 +3,35 @@
     <head>
         <title>v10m</title>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="title" content="v10m" />
         <meta name="description" content="A versatile media downloader with built-in compression." />
+        <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <meta name="apple-mobile-web-app-title" content="v10m" />
+        <link rel="manifest" href="/site.webmanifest" />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://ryan.kick.sh/v10m" />
+        <meta property="og:url" content="<%= url %>" />
         <meta property="og:title" content="v10m" />
         <meta property="og:description" content="A versatile media downloader with built-in compression." />
-        <meta property="og:image" content="/banner.png" />
+        <meta property="og:image" content="<%= url %>/banner.png" />
         <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:url" content="https://ryan.kick.sh/v10m" />
+        <meta property="twitter:url" content="<%= url %>" />
         <meta property="twitter:title" content="v10m" />
         <meta property="twitter:description" content="A versatile media downloader with built-in compression." />
-        <meta property="twitter:image" content="/banner.png" />
+        <meta property="twitter:image" content="<%= url %>/banner.png" />
         <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
         <link href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/9.2.0/mdb.min.css" rel="stylesheet">
         <link href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" rel="stylesheet">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
     <body>
         <div class="container my-5">
             <div class="subcontainer mx-auto" style="max-width: 600px">
+                <div class="text-center mb-4">
+                    <img src="/logo.png" alt="v10m" style="height: 100px;">
+                </div>
                 <div class="card" id="main">
                     <div class="card-body">
                         <ul class="nav nav-tabs w-100 border-bottom" role="tablist">
@@ -70,6 +79,9 @@
                             <button class="btn btn-primary mt-3 w-100" onclick="save()">Try Again</button>
                         </div>
                     </div>
+                </div>
+                <div class="text-center text-muted small mt-4">
+                    <%= version %>
                 </div>
             </div>
         </div>
