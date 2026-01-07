@@ -5,8 +5,8 @@
   "type": "module",
   "main": "./src/index.ts",
   "scripts": {
-    "build": "npm run clean && tsc",
-    "build:watch": "tsc --watch",
+    "build": "node build.js",
+    "build:watch": "node build.js --watch",
     "clean": "rm -rf ./dist",
     "prebuild": "npm run lint",
     "lint": "eslint src --ext .ts",
