@@ -11,7 +11,7 @@ import {
  * FFmpeg job options
  */
 export interface FFmpegJobOptions {
-  fileSizeKilobytes?: number;
+  targetSizeKb?: number;
   debug?: boolean;
 }
 
@@ -83,7 +83,7 @@ export class FFmpegJob extends Job {
             parseInt(durationString[2], 10) * 60 +
             parseFloat(durationString[3]);
           const maxSizeKilobits =
-            (this.options.fileSizeKilobytes ?? fs.statSync(this.inputFile).size / 1024) * 8;
+            (this.options.targetSizeKb ?? fs.statSync(this.inputFile).size / 1024) * 8;
           const bitrate =
             (maxSizeKilobits / durationSeconds - FFMPEG_AUDIO_BITRATE) *
             (1 - FFMPEG_VIDEO_BITRATE_BUFFER);

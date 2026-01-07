@@ -72,7 +72,7 @@ export class CliProgram {
       .command('transcode <input>')
       .description('Transcode video to MP4 format')
       .option('-o, --output <path>', 'output file', './%(input)s.out.mp4')
-      .option('-k, --filesize-kilobytes <kb>', 'target file size in kilobytes', parseInt)
+      .option('-k, --target-size-kb <kb>', 'target file size in kilobytes', parseInt)
       .action((input, options) => {
         options.output = options.output.replace(
           '%(input)s',
@@ -80,7 +80,7 @@ export class CliProgram {
         );
         console.log(`Transcoding ${input} to ${options.output}`);
         const ffmpegOptions: FFmpegJobOptions = {
-          fileSizeKilobytes: options.filesizeKilobytes,
+          targetSizeKb: options.targetSizeKb,
         };
         this.workers.createWorker(
           [new FFmpegJob(input, options.output, ffmpegOptions)],

@@ -1,27 +1,3 @@
-const bgPrimary = '';
-const bgSuccess = 'rgba(var(--mdb-success-rgb), var(--mdb-bg-opacity))';
-const bgDanger = 'rgba(var(--mdb-danger-rgb), var(--mdb-bg-opacity))';
-
-const toast = (message, background) => {
-  Toastify({
-    text: message,
-    style: {
-      background: `rgba(var(--mdb-${background}-rgb), var(--mdb-bg-opacity))`,
-      'margin-left': 'auto',
-      'margin-right': 'auto',
-    },
-  }).showToast();
-};
-
-const ordinal = (i) => {
-  let j = i % 10;
-  let k = i % 100;
-  if (j === 1 && k !== 11) return i + 'st';
-  if (j === 2 && k !== 12) return i + 'nd';
-  if (j === 3 && k !== 13) return i + 'rd';
-  return i + 'th';
-};
-
 window.onload = () => {
   const url = document.getElementById('url');
   const file = document.getElementById('file');
@@ -29,16 +5,23 @@ window.onload = () => {
   const progress = document.getElementById('progress');
 
   const troubleshooting = {};
+
   const targetSizeButtons = document.querySelectorAll('[data-size]');
-  const getTargetSize = () => Array.from(targetSizeButtons).find(button => button.classList.contains('active')).dataset.size;
+  const getTargetSize = () =>
+    Array.from(targetSizeButtons).find((button) => button.classList.contains('active')).dataset
+      .size;
+
   const disableControls = (disable) => {
     url.disabled = disable;
     file.disabled = disable;
     targetSizeButtons.forEach((tab) => {
       tab.classList.toggle('disabled', disable);
     });
-  }
-  const areControlsDisabled = () => url.disabled || file.disabled || Array.from(targetSizeButtons).some(tab => tab.classList.contains('disabled'));
+  };
+  const areControlsDisabled = () =>
+    url.disabled ||
+    file.disabled ||
+    Array.from(targetSizeButtons).some((tab) => tab.classList.contains('disabled'));
 
   targetSizeButtons.forEach((tab) => {
     tab.onclick = (event) => {
@@ -47,10 +30,9 @@ window.onload = () => {
       tab.classList.add('active');
     };
   });
-    console.log(window.url);
 
+  // Process
   window.submit = url.onkeydown = async (event) => {
-    // Process
     const useFile = event === 'file';
     if (!useFile && event) {
       if (event.key !== 'Enter') return;
@@ -58,13 +40,13 @@ window.onload = () => {
     }
 
     if (areControlsDisabled()) return;
+    disableControls(true);
+
+    status.style.display = 'block';
+    progress.style.width = '0%';
 
     let jobId = null;
     let jobLastAt = 0;
-
-    disableControls(true);
-    status.style.display = 'block';
-    progress.style.width = '0%';
 
     const getStatus = async (silent) => {
       let result;
@@ -76,6 +58,7 @@ window.onload = () => {
       console.log(result);
 
       disableControls(['waiting', 'working'].includes(result.status));
+
       status.style.display = ['waiting', 'working', 'failed'].includes(result.status)
         ? 'block'
         : 'none';
@@ -104,7 +87,7 @@ window.onload = () => {
       } else if (result.status === 'finished') {
         toast('Now downloading!', 'primary');
         const a = document.createElement('a');
-        a.href = result.downloadFile;
+        a.href = result.downloadUrl;
         a.download = '';
         document.body.appendChild(a);
         a.click();
@@ -183,3 +166,23 @@ window.onload = () => {
     }
   }
 };
+
+function toast(message, background) {
+  Toastify({
+    text: message,
+    style: {
+      background: `rgba(var(--mdb-${background}-rgb), var(--mdb-bg-opacity))`,
+      'margin-left': 'auto',
+      'margin-right': 'auto',
+    },
+  }).showToast();
+}
+
+function ordinal(i) {
+  let j = i % 10;
+  let k = i % 100;
+  if (j === 1 && k !== 11) return i + 'st';
+  if (j === 2 && k !== 12) return i + 'nd';
+  if (j === 3 && k !== 13) return i + 'rd';
+  return i + 'th';
+}

@@ -23,8 +23,8 @@ export interface ProcessState {
   id: string;
   status: 'waiting' | 'working' | 'finished' | 'failed';
   progress?: number;
-  tempFile?: string;
-  downloadFile?: string;
+  filename?: string;
+  downloadUrl?: string;
   at?: number;
   error?: any;
 }
@@ -74,7 +74,7 @@ export class WebServer {
     this.fastify.post(`${this.configs.config.web.path}/process`, async (request, reply) => {
       const downloadOutput = randomBytes(16).toString('hex') + '.mp4';
       const transcodeOutput = randomBytes(16).toString('hex') + '.mp4';
-      
+
       const body: any = {};
       const parts = request.parts();
 
@@ -85,7 +85,9 @@ export class WebServer {
             continue;
           }
           if (body.url) {
-            return reply.code(400).send({ status: 'error', details: 'Cannot use both file and URL' });
+            return reply
+              .code(400)
+              .send({ status: 'error', details: 'Cannot use both file and URL' });
           }
           const writeStream = fs.createWriteStream(`/tmp/${downloadOutput}`);
           setTimeout(() => {
@@ -113,19 +115,26 @@ export class WebServer {
       if (!useFile) {
         try {
           new URL(body.url);
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (e) {
           return reply.code(400).send({ status: 'error', details: 'Not a valid URL' });
         }
       }
 
-      const targetSize = !isNaN(parseInt(body.targetSize, 10)) ? parseInt(body.targetSize, 10) : undefined;
-      const maxTargetSize = this.configs.config.web.targetSizeListMb[this.configs.config.web.targetSizeListMb.length - 1];
+      const targetSize = !isNaN(parseInt(body.targetSize, 10))
+        ? parseInt(body.targetSize, 10)
+        : undefined;
+      const maxTargetSize =
+        this.configs.config.web.targetSizeListMb[
+          this.configs.config.web.targetSizeListMb.length - 1
+        ];
       if (!targetSize || targetSize <= 0 || targetSize > maxTargetSize) {
         return reply.code(400).send({ status: 'error', details: `Not a valid target size` });
       }
 
-      console.log(`Received download request: ${useFile ? `file:///tmp/${downloadOutput}` : body.url}, target size: ${targetSize} MB`);
+      console.log(
+        `Received download request: ${useFile ? `file:///tmp/${downloadOutput}` : body.url}, target size: ${targetSize} MB`
+      );
       const jobs = [];
       if (!useFile) {
         jobs.push(
@@ -137,36 +146,39 @@ export class WebServer {
       }
       jobs.push(
         new FFmpegJob(`/tmp/${downloadOutput}`, `/tmp/${transcodeOutput}`, {
-          fileSizeKilobytes: targetSize ? targetSize * 1024 : undefined,
+          targetSizeKb: targetSize ? targetSize * 1024 : undefined,
           debug: this.configs.config.debug,
         })
       );
-      
-      const id = this.processWorkers.createWorker(jobs, (job: number, status: JobStatus, data: any) => {
-        console.log(`Worker: ${id}, job: ${typeof job}, status: ${status}`, data);
-        if (job === jobs.length - 1 && status === JobStatus.Success) {
-          const downloadUrl = `${this.configs.config.web.url}/process/${id}/${this.configs.config.web.defaultDownloadFilename}.mp4`;
-          this.processStates.set(id, {
-            id: id.toString(),
-            status: 'finished',
-            tempFile: transcodeOutput,
-            downloadFile: downloadUrl,
-          });
-        } else if (status === JobStatus.Progress) {
-          const totalProgress = ((100 / jobs.length) * job) + (data.percent / jobs.length);
-          this.processStates.set(id, {
-            id: id.toString(),
-            status: 'working',
-            progress: totalProgress,
-          });
-        } else if (status === JobStatus.Failure) {
-          this.processStates.set(id, {
-            id: id.toString(),
-            status: 'failed',
-            error: data,
-          });
+
+      const id = this.processWorkers.createWorker(
+        jobs,
+        (job: number, status: JobStatus, data: any) => {
+          console.log(`Worker: ${id}, job: ${typeof job}, status: ${status}`, data);
+          if (job === jobs.length - 1 && status === JobStatus.Success) {
+            const downloadUrl = `${this.configs.config.web.url}/process/${id}/${this.configs.config.web.defaultDownloadFilename}.mp4`;
+            this.processStates.set(id, {
+              id: id.toString(),
+              status: 'finished',
+              filename: transcodeOutput,
+              downloadUrl: downloadUrl,
+            });
+          } else if (status === JobStatus.Progress) {
+            const totalProgress = (100 / jobs.length) * job + data.percent / jobs.length;
+            this.processStates.set(id, {
+              id: id.toString(),
+              status: 'working',
+              progress: totalProgress,
+            });
+          } else if (status === JobStatus.Failure) {
+            this.processStates.set(id, {
+              id: id.toString(),
+              status: 'failed',
+              error: data,
+            });
+          }
         }
-      });
+      );
 
       this.processStates.set(id, {
         id: id.toString(),
@@ -202,7 +214,7 @@ export class WebServer {
           return reply.code(404).send({ status: 'error', details: 'Job not finished' });
         }
 
-        const stream = fs.createReadStream(`/tmp/${processState.tempFile}`);
+        const stream = fs.createReadStream(`/tmp/${processState.filename}`);
         reply.header('Content-Disposition', `attachment; filename="${params.filename}"`);
         reply.type('video/mp4');
         return reply.send(stream);

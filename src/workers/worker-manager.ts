@@ -69,13 +69,11 @@ export class WorkerManager {
       let next;
       if (
         this.workers.getCountWorking() < this.configManager.config.workers.max &&
-        this.workers.getCountWaiting() > 0
+        (next = this.workers.getNextWaiting())
       ) {
-        if ((next = this.workers.getNextWaiting())) {
-          console.log(`Starting job ${next.id}...`);
-          next.item.jobs[0].start();
-          next.item.working = true;
-        }
+        console.log(`Starting job ${next.id}...`);
+        next.item.jobs[0].start();
+        next.item.working = true;
       }
     }, this.configManager.config.workers.loopMs);
   }
