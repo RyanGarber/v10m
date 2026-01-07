@@ -14,6 +14,7 @@ import { YTdlpJob, FFmpegJob, JobStatus } from '../../jobs/index.js';
 import { WorkerManager } from '../../workers/index.js';
 import pkg from '../../../package.json' with { type: 'json' };
 import { WEB_UPLOAD_CLEANUP_MS } from '../../consts.js';
+import { fileTypeFromFile } from 'file-type';
 
 /**
  * Process state (returned verbatim to user)
@@ -212,21 +213,8 @@ export class WebServer {
     for (const file of fs.readdirSync(path.join(__dirname, 'static'))) {
       this.fastify.get(`${this.configs.config.web.path}/${file}`, async (request, reply) => {
         const stream = fs.createReadStream(path.join(__dirname, 'static', file));
-        // TODO file-type.fileTypeFromFile()
-        const types = {
-          '.css': 'text/css',
-          '.js': 'application/javascript',
-          '.png': 'image/png',
-          '.svg': 'image/svg+xml',
-          '.ico': 'image/x-icon',
-          '.json': 'application/json',
-          '.webmanifest': 'application/manifest+json',
-        };
-        for (const [ext, type] of Object.entries(types)) {
-          if (file.endsWith(ext)) {
-            reply.type(type);
-          }
-        }
+        const type = await fileTypeFromFile(path.join(__dirname, 'static', file));
+        reply.type(type?.mime ?? 'application/octet-stream');
         return reply.send(stream);
       });
     }
