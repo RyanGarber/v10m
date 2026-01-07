@@ -16,9 +16,9 @@ import pkg from '../../../package.json' with { type: 'json' };
 import { WEB_UPLOAD_CLEANUP_MS } from '../../consts.js';
 
 /**
- * Public-facing worker state
+ * Process state (returned verbatim to user)
  */
-export interface WebWorkerState {
+export interface ProcessState {
   id: string;
   status: 'waiting' | 'working' | 'finished' | 'failed';
   progress?: number;
@@ -34,7 +34,7 @@ export interface WebWorkerState {
 export class WebServer {
   configs: ConfigManager;
   processWorkers: WorkerManager;
-  processStates: Map<bigint, WebWorkerState>;
+  processStates: Map<bigint, ProcessState>;
   fastify: fastify.FastifyInstance;
 
   constructor(configOverrides: PartialConfig = {}) {
@@ -42,7 +42,7 @@ export class WebServer {
 
     console.log('Starting server with config:', this.configs.config);
     this.processWorkers = new WorkerManager(this.configs);
-    this.processStates = new Map<bigint, WebWorkerState>();
+    this.processStates = new Map<bigint, ProcessState>();
 
     this.fastify = fastify({
       logger: true,
@@ -83,6 +83,9 @@ export class WebServer {
           if (part.fieldname !== 'file' || useFile) {
             continue;
           }
+          if (body.url) {
+            return reply.code(400).send({ status: 'error', details: 'Cannot use both file and URL' });
+          }
           const writeStream = fs.createWriteStream(`/tmp/${downloadOutput}`);
           setTimeout(() => {
             writeStream.destroy(new Error('Upload timed out'));
@@ -106,14 +109,18 @@ export class WebServer {
         }
       }
 
-      if (!useFile && (!body.url || typeof body.url !== 'string')) {
-        return reply.code(400).send({ status: 'error', details: 'Not a valid URL' });
+      if (!useFile) {
+        try {
+          new URL(body.url);
+        } catch (e) {
+          return reply.code(400).send({ status: 'error', details: 'Not a valid URL' });
+        }
       }
 
       const targetSize = !isNaN(parseInt(body.targetSize, 10)) ? parseInt(body.targetSize, 10) : undefined;
       const maxTargetSize = this.configs.config.web.targetSizeListMb[this.configs.config.web.targetSizeListMb.length - 1];
       if (!targetSize || targetSize <= 0 || targetSize > maxTargetSize) {
-        return reply.code(400).send({ status: 'error', details: `Not a valid size` });
+        return reply.code(400).send({ status: 'error', details: `Not a valid target size` });
       }
 
       console.log(`Received download request: ${useFile ? `file:///tmp/${downloadOutput}` : body.url}, target size: ${targetSize} MB`);
@@ -135,7 +142,7 @@ export class WebServer {
       
       const id = this.processWorkers.createWorker(jobs, (job: number, status: JobStatus, data: any) => {
         console.log(`Worker: ${id}, job: ${typeof job}, status: ${status}`, data);
-        if ((useFile || job === 1) && status === JobStatus.Success) {
+        if (job === jobs.length - 1 && status === JobStatus.Success) {
           const downloadUrl = `${this.configs.config.web.url}/process/${id}/${this.configs.config.web.defaultDownloadFilename}.mp4`;
           this.processStates.set(id, {
             id: id.toString(),
@@ -144,7 +151,7 @@ export class WebServer {
             downloadFile: downloadUrl,
           });
         } else if (status === JobStatus.Progress) {
-          const totalProgress = !useFile ? (job === 1 ? 50 : 0) + data.percent / 2 : data.percent;
+          const totalProgress = ((100 / jobs.length) * job) + (data.percent / jobs.length);
           this.processStates.set(id, {
             id: id.toString(),
             status: 'working',
@@ -170,30 +177,30 @@ export class WebServer {
 
     this.fastify.get(`${this.configs.config.web.path}/process/:id`, async (request, reply) => {
       const params = request.params as any; // TODO fix typing
-      const workerState = this.processStates.get(SafeBigInt(params.id));
-      if (!workerState) {
+      const processState = this.processStates.get(SafeBigInt(params.id));
+      if (!processState) {
         return reply.code(404).send({ status: 'error', details: 'Job not found' });
       }
 
-      if (workerState.status === 'waiting') {
-        workerState.at = this.processWorkers.getWorkerPositionWaiting(workerState.id) + 1;
+      if (processState.status === 'waiting') {
+        processState.at = this.processWorkers.getWorkerPositionWaiting(processState.id) + 1;
       }
-      return workerState;
+      return processState;
     });
 
     this.fastify.get(
       `${this.configs.config.web.path}/process/:id/:filename`,
       async (request, reply) => {
         const params = request.params as any; // TODO fix typing
-        const workerState = this.processStates.get(SafeBigInt(params.id));
-        if (!workerState) {
+        const processState = this.processStates.get(SafeBigInt(params.id));
+        if (!processState) {
           return reply.code(404).send({ status: 'error', details: 'Job not found' });
         }
-        if (workerState.status !== 'finished') {
+        if (processState.status !== 'finished') {
           return reply.code(404).send({ status: 'error', details: 'Job not finished' });
         }
 
-        const stream = fs.createReadStream(`/tmp/${workerState.tempFile}`);
+        const stream = fs.createReadStream(`/tmp/${processState.tempFile}`);
         reply.header('Content-Disposition', `attachment; filename="${params.filename}"`);
         reply.type('video/mp4');
         return reply.send(stream);
@@ -204,6 +211,7 @@ export class WebServer {
     for (const file of fs.readdirSync(path.join(__dirname, 'static'))) {
       this.fastify.get(`${this.configs.config.web.path}/${file}`, async (request, reply) => {
         const stream = fs.createReadStream(path.join(__dirname, 'static', file));
+        // TODO file-type.fileTypeFromFile()
         const types = {
           '.css': 'text/css',
           '.js': 'application/javascript',
