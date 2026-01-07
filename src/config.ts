@@ -42,7 +42,7 @@ const defaults: Config = {
     cleanupMs: 300000,
   },
   web: {
-    url: 'https://127.0.0.1:8080',
+    url: 'http://127.0.0.1:8080',
     host: '127.0.0.1',
     port: 8080,
     path: '/',
