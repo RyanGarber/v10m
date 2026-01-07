@@ -144,7 +144,7 @@ export class WebServer {
             downloadFile: downloadUrl,
           });
         } else if (status === JobStatus.Progress) {
-          const totalProgress = useFile ? (job === 1 ? 50 : 0) + data.percent / 2 : data.percent;
+          const totalProgress = !useFile ? (job === 1 ? 50 : 0) + data.percent / 2 : data.percent;
           this.processStates.set(id, {
             id: id.toString(),
             status: 'working',
