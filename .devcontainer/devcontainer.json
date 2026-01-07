@@ -5,20 +5,15 @@
   // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
   "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
 
-  "hostRequirements": {
-    "gpu": "optional"
-  },
-
-  "containerEnv": {
-    "NVIDIA_VISIBLE_DEVICES": "all",
-    "NVIDIA_DRIVER_CAPABILITIES": "compute,video,utility"
-  },
-
   // Features to add to the dev container. More info: https://containers.dev/features.
   "features": {
     "ghcr.io/devcontainers/features/python:1": {},
     "ghcr.io/devcontainers-extra/features/yt-dlp:2": {},
     "ghcr.io/devcontainers-extra/features/ffmpeg-apt-get:1": {}
+  },
+
+  "hostRequirements": {
+    "gpu": "optional"
   },
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
@@ -29,6 +24,11 @@
       "label": "v10m-web",
       "onAutoForward": "openBrowserOnce"
     }
+  },
+
+  "containerEnv": {
+    "NVIDIA_VISIBLE_DEVICES": "all",
+    "NVIDIA_DRIVER_CAPABILITIES": "compute,video,utility"
   },
 
   // Use 'postCreateCommand' to run commands after the container is created.
