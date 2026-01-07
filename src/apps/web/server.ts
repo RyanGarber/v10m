@@ -112,6 +112,7 @@ export class WebServer {
       if (!useFile) {
         try {
           new URL(body.url);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (e) {
           return reply.code(400).send({ status: 'error', details: 'Not a valid URL' });
         }

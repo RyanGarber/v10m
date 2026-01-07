@@ -152,6 +152,15 @@ function merge(...configs: PartialConfig[]): Config {
             config.web.path.endsWith('/') ? -1 : undefined
           );
       }
+      if (config.web.maxUploadSizeMb !== undefined) {
+        result.web.maxUploadSizeMb = config.web.maxUploadSizeMb;
+      }
+      if (config.web.targetSizeListMb !== undefined) {
+        result.web.targetSizeListMb = config.web.targetSizeListMb;
+      }
+      if (config.web.defaultDownloadFilename !== undefined) {
+        result.web.defaultDownloadFilename = config.web.defaultDownloadFilename;
+      }
     }
   }
 
