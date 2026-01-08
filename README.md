@@ -21,7 +21,7 @@ v10m is a versatile media downloader with built-in compression. It functions as 
 
 # Configuration
 
-v10m will look for command line arguments, environment variables, `~/.v10m.config.json`, and `./v10m.config.json`, each of which overriding the last.
+v10m will look for command line arguments, environment variables, `./v10m.config.json`, and `~/.v10m.config.json`, each of which overriding the last.
 
 ```typescript
 debug: false,
