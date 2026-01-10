@@ -5,16 +5,16 @@ import path from 'path';
 import fastify from 'fastify';
 import fastifyCookie from '@fastify/cookie';
 import fastifyMultipart from '@fastify/multipart';
-import { fileTypeStream } from 'file-type';
+import { fileTypeFromFile, fileTypeStream } from 'file-type';
 import { randomBytes } from 'node:crypto';
 import { pipeline } from 'node:stream/promises';
 
 import { ConfigManager, type PartialConfig } from '../../config.js';
+import type { JobStatusData } from '../../jobs/index.js';
 import { YTdlpJob, FFmpegJob, JobStatus } from '../../jobs/index.js';
 import { WorkerManager } from '../../workers/index.js';
 import pkg from '../../../package.json' with { type: 'json' };
 import { WEB_UPLOAD_CLEANUP_MS } from '../../consts.js';
-import { fileTypeFromFile } from 'file-type';
 
 /**
  * Process state (returned verbatim to user)
@@ -26,7 +26,7 @@ export interface ProcessState {
   filename?: string;
   downloadUrl?: string;
   at?: number;
-  error?: any;
+  details?: string;
 }
 
 /**
@@ -46,7 +46,7 @@ export class WebServer {
     this.processStates = new Map<bigint, ProcessState>();
 
     this.fastify = fastify({
-      logger: true,
+      logger: this.configs.config.debug ? { level: 'debug' } : false,
       routerOptions: {
         ignoreTrailingSlash: true,
         ignoreDuplicateSlashes: true,
@@ -58,24 +58,28 @@ export class WebServer {
     this.fastify.register(fastifyMultipart);
 
     this.fastify.setErrorHandler((error, request, reply) => {
-      console.error(error);
+      console.trace(error);
       reply.status(500).send({ status: 'error', details: 'Internal Server Error' });
     });
 
     this.fastify.get(`${this.configs.config.web.path}/`, async (request, reply) => {
       reply.header('Content-Type', 'text/html');
-      return ejs.renderFile('src/apps/web/views/index.ejs', {
-        version: pkg.version,
-        url: this.configs.config.web.url,
-        targetSizes: this.configs.config.web.targetSizeListMb,
-      });
+      return ejs.renderFile(
+        path.join(path.dirname(url.fileURLToPath(import.meta.url)), 'views/index.ejs'),
+        {
+          version: pkg.version,
+          description: pkg.description,
+          url: this.configs.config.web.url,
+          targetSizes: this.configs.config.web.targetSizeListMb,
+        }
+      );
     });
 
     this.fastify.post(`${this.configs.config.web.path}/process`, async (request, reply) => {
       const downloadOutput = randomBytes(16).toString('hex') + '.mp4';
       const transcodeOutput = randomBytes(16).toString('hex') + '.mp4';
 
-      const body: any = {};
+      const body: Record<string, string> = {};
       const parts = request.parts();
 
       let useFile = false;
@@ -108,7 +112,7 @@ export class WebServer {
           });
           useFile = true;
         } else {
-          body[part.fieldname] = part.value;
+          body[part.fieldname] = part.value as string;
         }
       }
 
@@ -151,34 +155,31 @@ export class WebServer {
         })
       );
 
-      const id = this.processWorkers.createWorker(
-        jobs,
-        (job: number, status: JobStatus, data: any) => {
-          console.log(`Worker: ${id}, job: ${typeof job}, status: ${status}`, data);
-          if (job === jobs.length - 1 && status === JobStatus.Success) {
-            const downloadUrl = `${this.configs.config.web.url}/process/${id}/${this.configs.config.web.defaultDownloadFilename}.mp4`;
-            this.processStates.set(id, {
-              id: id.toString(),
-              status: 'finished',
-              filename: transcodeOutput,
-              downloadUrl: downloadUrl,
-            });
-          } else if (status === JobStatus.Progress) {
-            const totalProgress = (100 / jobs.length) * job + data.percent / jobs.length;
-            this.processStates.set(id, {
-              id: id.toString(),
-              status: 'working',
-              progress: totalProgress,
-            });
-          } else if (status === JobStatus.Failure) {
-            this.processStates.set(id, {
-              id: id.toString(),
-              status: 'failed',
-              error: data,
-            });
-          }
+      const id = this.processWorkers.addWorkerToQueue(jobs, (job: number, data: JobStatusData) => {
+        console.log(`Worker: ${id}, job: ${typeof job}, data:`, data);
+        if (job === jobs.length - 1 && data.status === JobStatus.Success) {
+          const downloadUrl = `${this.configs.config.web.url}/process/${id}/${this.configs.config.web.defaultDownloadFilename}.mp4`;
+          this.processStates.set(id, {
+            id: id.toString(),
+            status: 'finished',
+            filename: transcodeOutput,
+            downloadUrl: downloadUrl,
+          });
+        } else if (data.status === JobStatus.Progress) {
+          const totalProgress = (100 / jobs.length) * job + data.percent / jobs.length;
+          this.processStates.set(id, {
+            id: id.toString(),
+            status: 'working',
+            progress: totalProgress,
+          });
+        } else if (data.status === JobStatus.Failure) {
+          this.processStates.set(id, {
+            id: id.toString(),
+            status: 'failed',
+            details: data.message,
+          });
         }
-      );
+      });
 
       this.processStates.set(id, {
         id: id.toString(),
@@ -190,7 +191,7 @@ export class WebServer {
     });
 
     this.fastify.get(`${this.configs.config.web.path}/process/:id`, async (request, reply) => {
-      const params = request.params as any; // TODO fix typing
+      const params = request.params as { id: string };
       const processState = this.processStates.get(SafeBigInt(params.id));
       if (!processState) {
         return reply.code(404).send({ status: 'error', details: 'Job not found' });
@@ -205,7 +206,7 @@ export class WebServer {
     this.fastify.get(
       `${this.configs.config.web.path}/process/:id/:filename`,
       async (request, reply) => {
-        const params = request.params as any; // TODO fix typing
+        const params = request.params as { id: string; filename: string };
         const processState = this.processStates.get(SafeBigInt(params.id));
         if (!processState) {
           return reply.code(404).send({ status: 'error', details: 'Job not found' });
@@ -233,11 +234,9 @@ export class WebServer {
   }
 
   start() {
-    const config = this.configs.config;
-    console.log('HOST: ', config.web.host);
     void this.fastify.listen({
-      host: config.web.host,
-      port: config.web.port,
+      host: this.configs.config.web.host,
+      port: this.configs.config.web.port,
     });
   }
 }

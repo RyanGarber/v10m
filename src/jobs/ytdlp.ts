@@ -1,120 +1,85 @@
 import fs from 'fs';
-import { type ChildProcessWithoutNullStreams, spawn } from 'child_process';
-import { Job, JobStatus } from './base-job.js';
+import { Job, type JobOptions } from './base.js';
 import { FFMPEG_NVIDIA_ARGS } from '../consts.js';
+import { Command, CommandEvent, ErrorMode } from '../utils/command.js';
+import chalk from 'chalk';
 
 /**
  * YT-dlp job options
  */
-export interface YTdlpJobOptions {
+export interface YTdlpJobOptions extends JobOptions {
   username?: string;
   password?: string;
   cookies?: string;
-  debug?: boolean;
+  onProgress?: (percent: number) => void;
 }
 
 /**
  * YT-dlp job
  */
 export class YTdlpJob extends Job {
-  private inputUrl: string;
-  private outputFile: string;
-  private options: YTdlpJobOptions;
-
-  private ytdlp: ChildProcessWithoutNullStreams | null = null;
-
-  constructor(inputUrl: string, outputFile: string, options: YTdlpJobOptions = {}) {
-    super();
-    this.inputUrl = inputUrl;
-    this.outputFile = outputFile;
-    this.options = options;
+  constructor(
+    private inputUrl: string,
+    private outputFile: string,
+    options: YTdlpJobOptions = {}
+  ) {
+    super(options);
   }
 
-  #handle(scope: string, data: any, isError: boolean) {
-    if (!data) {
-      return false;
-    }
-
-    if (this.options.debug) {
-      console.log(`[${scope}] ${data.toString()}`);
-      if (isError) {
-        console.log('----- FAILURE - WOULD EXIT HERE -----');
-      }
-    } else if (isError) {
-      try {
-        this.ytdlp!.kill();
-      } catch (e: any) {
-        console.log(`[${scope}] Failed to kill process: ${e.toString()}`);
-      }
-      this.emit(JobStatus.Failure, `[${scope}] ${data.toString()}`);
-      return true;
-    }
-
-    return false;
-  }
-
-  start() {
+  async run() {
     console.log(`Starting download from ${this.inputUrl} to ${this.outputFile}`);
     this.files.push(this.outputFile);
-    this.emit(JobStatus.Progress, { percent: 0 });
+    (this.options as YTdlpJobOptions).onProgress?.(0);
 
-    const nvidia = spawn('nvidia-smi');
-    nvidia
-      .on('error', (_) => {
-        /* Ignore errors */
-      })
-      .on('close', (nvidiaExit) => {
-        // Prepare yt-dlp arguments
-        const ytdlpArgs = [
-          '-o',
-          this.outputFile,
-          '-f',
-          'bv*[height<=1080][ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b',
-          '-v',
-          '--js-runtime=node',
-          ...(nvidiaExit === 0
-            ? [
-                '--postprocessor-args',
-                `ffmpeg_i:${FFMPEG_NVIDIA_ARGS.INPUT}`,
-                '--postprocessor-args',
-                `ffmpeg_o:${FFMPEG_NVIDIA_ARGS.OUTPUT}`,
-              ]
-            : []),
-        ];
+    // Check for NVIDIA GPU
+    const hasNvidia = (await new Command('nvidia-smi').run().catch(() => false)) !== false;
 
-        if (this.options.username && this.options.password) {
-          ytdlpArgs.push('-u', this.options.username, '-p', this.options.password);
-        }
-        if (this.options.cookies && this.options.cookies.length > 0) {
-          fs.writeFileSync(`${this.outputFile}.cookies`, this.options.cookies);
-          this.files.push(`${this.outputFile}.cookies`);
-          ytdlpArgs.push('--cookies', `${this.outputFile}.cookies`);
-        }
+    // Construct yt-dlp command
+    let command = `yt-dlp -o ${this.outputFile} -f "bv*[height<=1080][ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b" -v --js-runtime=node`;
+    if (hasNvidia) {
+      command += ` --postprocessor-args "ffmpeg_i:${FFMPEG_NVIDIA_ARGS.INPUT}" --postprocessor-args "ffmpeg_o:${FFMPEG_NVIDIA_ARGS.OUTPUT}"`;
+    }
+    if ((this.options as YTdlpJobOptions).username && (this.options as YTdlpJobOptions).password) {
+      command += ` -u ${(this.options as YTdlpJobOptions).username} -p ${(this.options as YTdlpJobOptions).password}`;
+    }
+    if (
+      (this.options as YTdlpJobOptions).cookies &&
+      (this.options as YTdlpJobOptions).cookies!.length > 0
+    ) {
+      fs.writeFileSync(`${this.outputFile}.cookies`, (this.options as YTdlpJobOptions).cookies!);
+      this.files.push(`${this.outputFile}.cookies`);
+      command += ` --cookies ${this.outputFile}.cookies`;
+    }
+    command += ` ${this.inputUrl}`;
 
-        ytdlpArgs.push(this.inputUrl);
+    const ytdlp = new Command(command, {
+      captureOutput: ['stderr'],
+      captureError: [],
+      treatAsError: (line) => /error[:|\]]/im.test(line),
+      onError: this.options.debug ? ErrorMode.Reject : ErrorMode.Stop | ErrorMode.Reject,
+    });
 
-        // Start yt-dlp process
-        this.ytdlp = spawn('yt-dlp', ytdlpArgs);
+    // Run yt-dlp and handle output
+    ytdlp.on(CommandEvent.Data, (data) => {
+      if (this.options.debug) {
+        console.log(chalk.gray('| ', data.trim()));
+      }
+      const progressMatch = /(\d{1,3}\.\d)%/im.exec(data);
+      if (progressMatch) {
+        const percent = parseFloat(progressMatch[1]);
+        (this.options as YTdlpJobOptions).onProgress?.(percent);
+      }
+    });
 
-        this.ytdlp.on('error', (error) => {
-          if (this.#handle('yt-dlp::error', error, true)) {
-            return;
-          }
-        });
-
-        this.ytdlp.on('close', (code) => {
-          if (this.#handle('yt-dlp::close', code, code !== 0)) {
-            return;
-          }
-          this.emit(JobStatus.Success, { file: this.outputFile });
-        });
-
-        this.ytdlp.stderr.on('data', (data) => {
-          data = data.toString();
-          if (this.#handle('yt-dlp::out', data, /error[:|\]]/im.test(data))) {
-            return;
-          }
-        });
-      });
+    try {
+      await ytdlp.run();
+    } catch (error) {
+      console.error(chalk.red('YT-dlp failed:'), (error as Error).message.trim());
+      if (this.options.debug) {
+        console.warn(chalk.yellow('Debug mode enabled; continuing.'));
+      } else {
+        throw error;
+      }
+    }
   }
 }

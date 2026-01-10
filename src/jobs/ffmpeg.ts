@@ -1,145 +1,120 @@
 import fs from 'fs';
-import { type ChildProcessWithoutNullStreams, spawn } from 'child_process';
-import { Job, JobStatus } from './base-job.js';
+import { Job, type JobOptions } from './base.js';
+import { Command, CommandEvent, ErrorMode } from '../utils/command.js';
 import {
   FFMPEG_AUDIO_BITRATE,
   FFMPEG_VIDEO_BITRATE_BUFFER,
+  FFMPEG_VIDEO_BITRATE_DEFAULT,
   FFMPEG_NVIDIA_ARGS,
 } from '../consts.js';
+import chalk from 'chalk';
 
 /**
  * FFmpeg job options
  */
-export interface FFmpegJobOptions {
+export interface FFmpegJobOptions extends JobOptions {
   targetSizeKb?: number;
-  debug?: boolean;
+  onProgress?: (percent: number) => void;
 }
 
 /**
  * FFmpeg job
  */
 export class FFmpegJob extends Job {
-  private inputFile: string;
-  private outputFile: string;
-  private options: FFmpegJobOptions;
-
-  private ffmpeg: ChildProcessWithoutNullStreams | null = null;
-
-  constructor(inputFile: string, outputFile: string, options: FFmpegJobOptions = {}) {
-    super();
-    this.inputFile = inputFile;
-    this.outputFile = outputFile;
-    this.options = options;
+  constructor(
+    private inputFile: string,
+    private outputFile: string,
+    options: FFmpegJobOptions = {}
+  ) {
+    super(options);
   }
 
-  #handle(scope: string, data: any, isError: boolean) {
-    if (!data) {
-      return false;
-    }
-
-    if (this.options.debug) {
-      console.log(`[${scope}] ${data.toString()}`);
-      if (isError) {
-        console.log('----- FAILURE - WOULD EXIT HERE -----');
-      }
-    } else if (isError) {
-      try {
-        this.ffmpeg!.kill();
-      } catch (e: any) {
-        console.log(`[${scope}] Failed to kill ffmpeg process: ${e.toString()}`);
-      }
-      this.emit(JobStatus.Failure, `[${scope}] ${data.toString()}`);
-      return true;
-    }
-
-    return false;
-  }
-
-  start() {
+  async run() {
     console.log(`Starting transcode from ${this.inputFile} to ${this.outputFile}`);
     this.files.push(this.outputFile);
-    this.emit(JobStatus.Progress, { percent: 0 });
+    (this.options as FFmpegJobOptions).onProgress?.(0);
 
-    const nvidia = spawn('nvidia-smi');
-    nvidia
-      .on('error', (_) => {
-        /* Ignore errors */
-      })
-      .on('close', (nvidiaExit) => {
-        // Get video duration
-        const t = spawn('ffprobe', ['-i', this.inputFile]);
-        t.stderr.on('data', (data) => {
-          if (this.#handle('ffprobe::out', data, /error[:|\]]/im.test(data))) {
-            return;
-          }
+    // Check for NVIDIA GPU
+    const hasNvidia = (await new Command('nvidia-smi').run().catch(() => false)) !== false;
 
-          const durationString = data.toString().match(/Duration: (\d+):(\d+):(\d+\.\d+)/);
-          if (!durationString) {
-            return;
-          }
+    // Get input video duration
+    let seconds = -1;
 
-          const durationSeconds =
-            parseInt(durationString[1], 10) * 3600 +
-            parseInt(durationString[2], 10) * 60 +
-            parseFloat(durationString[3]);
-          const maxSizeKilobits =
-            (this.options.targetSizeKb ?? fs.statSync(this.inputFile).size / 1024) * 8;
-          const bitrate =
-            (maxSizeKilobits / durationSeconds - FFMPEG_AUDIO_BITRATE) *
-            (1 - FFMPEG_VIDEO_BITRATE_BUFFER);
-          console.log(`Using target video bitrate: ${Math.floor(bitrate)} kbps`);
+    const ffprobe = new Command(`ffprobe -i ${this.inputFile}`, {
+      captureOutput: ['stderr'],
+      captureError: [],
+      onError: ErrorMode.None,
+    });
 
-          // Prepare ffmpeg arguments
-          const ffmpegArgs = [
-            ...(nvidiaExit === 0 ? FFMPEG_NVIDIA_ARGS.INPUT.split(' ') : []),
-            '-i',
-            this.inputFile,
-            '-progress',
-            'pipe:2',
-            ...(nvidiaExit === 0 ? FFMPEG_NVIDIA_ARGS.OUTPUT.split(' ') : []),
-            '-b:v',
-            `${Math.floor(bitrate)}k`,
-            '-b:a',
-            `${FFMPEG_AUDIO_BITRATE}k`,
-            '-y',
-            this.outputFile,
-          ];
+    ffprobe.on(CommandEvent.Data, (data) => {
+      const durationString = /Duration: (\d+):(\d+):(\d+\.\d+)/.exec(data);
+      if (durationString) {
+        seconds =
+          parseInt(durationString[1], 10) * 3600 +
+          parseInt(durationString[2], 10) * 60 +
+          parseFloat(durationString[3]);
+      }
+    });
 
-          // Start ffmpeg process
-          this.ffmpeg = spawn('ffmpeg', ffmpegArgs);
+    await ffprobe.run();
 
-          this.ffmpeg.on('error', (error) => {
-            if (this.#handle('ffmpeg::error', error, true)) {
-              return;
-            }
-          });
+    // Calculate target video bitrate
+    const maxSizeKilobits =
+      ((this.options as FFmpegJobOptions).targetSizeKb ?? fs.statSync(this.inputFile).size / 1024) *
+      8;
+    let bitrate =
+      (maxSizeKilobits / seconds - FFMPEG_AUDIO_BITRATE) * (1 - FFMPEG_VIDEO_BITRATE_BUFFER);
 
-          this.ffmpeg.on('close', (code) => {
-            if (this.#handle('ffmpeg::close', code, code !== 0)) {
-              return;
-            }
-            this.emit(JobStatus.Success, { file: this.outputFile });
-          });
+    if (seconds === -1) {
+      console.warn(chalk.yellow('ffprobe failed; compression and progress not available.'));
+      bitrate = FFMPEG_VIDEO_BITRATE_DEFAULT;
+    }
+    console.log(`Using target video bitrate: ${Math.floor(bitrate)} kbps`);
 
-          this.ffmpeg.stderr.on('data', (data) => {
-            data = data.toString();
+    // Construct ffmpeg arguments
+    let command = 'ffmpeg';
+    if (hasNvidia) {
+      command += ` ${FFMPEG_NVIDIA_ARGS.INPUT}`;
+    }
+    command += ` -i ${this.inputFile} -progress pipe:2`;
+    if (hasNvidia) {
+      command += ` ${FFMPEG_NVIDIA_ARGS.OUTPUT}`;
+    }
+    command += ` -b:v ${Math.floor(bitrate)}k -b:a ${FFMPEG_AUDIO_BITRATE}k -y ${this.outputFile}`;
 
-            if (this.#handle('ffmpeg::out', data, /error[:|\]]/im.test(data))) {
-              return;
-            }
+    // Run ffmpeg and handle output
+    const ffmpeg = new Command(command, {
+      captureOutput: ['stderr'],
+      captureError: [],
+      treatAsError: (line) => /error[:|\]]/im.test(line),
+      onError: this.options.debug ? ErrorMode.Reject : ErrorMode.Stop | ErrorMode.Reject,
+    });
 
-            const timeString = data.match(/time=(\d{2}):(\d{2}):(\d{2}\.\d{2})/);
-            if (timeString) {
-              const timeSeconds =
-                parseInt(timeString[1], 10) * 3600 +
-                parseInt(timeString[2], 10) * 60 +
-                parseFloat(timeString[3]);
-              const progress = Math.min(Math.round((timeSeconds / durationSeconds) * 100), 100);
+    ffmpeg.on(CommandEvent.Data, (data) => {
+      if (this.options.debug) {
+        console.log(chalk.gray('| ', data.trim()));
+      }
+      const timeString = /time=(\d{2}):(\d{2}):(\d{2}\.\d{2})/im.exec(data);
+      if (timeString && seconds !== -1) {
+        const timeSeconds =
+          parseInt(timeString[1], 10) * 3600 +
+          parseInt(timeString[2], 10) * 60 +
+          parseFloat(timeString[3]);
+        const progress = Math.min(Math.round((timeSeconds / seconds) * 100), 100);
 
-              this.emit(JobStatus.Progress, { percent: progress });
-            }
-          });
-        });
-      });
+        (this.options as FFmpegJobOptions).onProgress?.(progress);
+      }
+    });
+
+    try {
+      await ffmpeg.run();
+    } catch (error) {
+      console.error(chalk.red('FFmpeg failed:'), (error as Error).message.trim());
+      if (this.options.debug) {
+        console.warn(chalk.yellow('Debug mode enabled; continuing.'));
+      } else {
+        throw error;
+      }
+    }
   }
 }

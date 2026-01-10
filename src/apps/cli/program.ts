@@ -47,7 +47,7 @@ export class CliProgram {
       .option('-o, --output <path>', 'output file', './$(title)s.mp4')
       .action(
         (
-          url,
+          url: string,
           options: {
             username?: string;
             password?: string;
@@ -61,9 +61,9 @@ export class CliProgram {
             password: options.password,
             cookies: options.cookies ? fs.readFileSync(options.cookies, 'utf-8') : undefined,
           };
-          this.workers.createWorker(
+          this.workers.addWorkerToQueue(
             [new YTdlpJob(url, options.output, ytdlpOptions)],
-            (jobId, status, data) => console.log(`[${status}] ${data}`)
+            (jobId, data) => console.log(`[${data.status}]`, data)
           );
         }
       );
@@ -73,7 +73,7 @@ export class CliProgram {
       .description('Transcode video to MP4 format')
       .option('-o, --output <path>', 'output file', './%(input)s.out.mp4')
       .option('-k, --target-size-kb <kb>', 'target file size in kilobytes', parseInt)
-      .action((input, options) => {
+      .action((input: string, options: { output: string; targetSizeKb?: number }) => {
         options.output = options.output.replace(
           '%(input)s',
           input.slice(input.lastIndexOf('/') + 1, input.lastIndexOf('.'))
@@ -82,9 +82,9 @@ export class CliProgram {
         const ffmpegOptions: FFmpegJobOptions = {
           targetSizeKb: options.targetSizeKb,
         };
-        this.workers.createWorker(
+        this.workers.addWorkerToQueue(
           [new FFmpegJob(input, options.output, ffmpegOptions)],
-          (jobId, status, data) => console.log(`[${status}] ${data}`)
+          (jobId, data) => console.log(`[${data.status}]`, data)
         );
       });
   }
