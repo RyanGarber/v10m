@@ -87,7 +87,7 @@ window.onload = () => {
       } else if (result.status === 'finished') {
         toast('Now downloading!', 'primary');
         const a = document.createElement('a');
-        a.href = result.downloadUrl;
+        a.href = result.download;
         a.download = '';
         document.body.appendChild(a);
         a.click();

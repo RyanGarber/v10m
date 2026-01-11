@@ -15,11 +15,11 @@ if (watch) {
     execSync('tsc', { stdio: 'inherit' });
 
     console.log('Copying static files...');
+    fs.mkdirSync('./dist/apps/web/views', { recursive: true });
+    fs.cpSync('./src/apps/web/views', './dist/apps/web/views', { recursive: true });
+
     fs.mkdirSync('./dist/apps/web/static', { recursive: true });
-    const staticFiles = fs.readdirSync('./src/apps/web/static');
-    for (const file of staticFiles) {
-      fs.copyFileSync(`./src/apps/web/static/${file}`, `./dist/apps/web/static/${file}`);
-    }
+    fs.cpSync('./src/apps/web/static', './dist/apps/web/static', { recursive: true });
 
     console.log('Build succeeded!');
   } catch (error) {

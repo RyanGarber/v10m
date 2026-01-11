@@ -1,9 +1,9 @@
 {
   "name": "@ryangarber/v10m",
   "description": "A versatile media downloader with built-in compression.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
-  "main": "./src/index.ts",
+  "main": "./dist/index.js",
   "scripts": {
     "build": "node build.js",
     "build:watch": "node build.js --watch",
@@ -14,26 +14,27 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "type-check": "tsc --noEmit",
-    "dev:cli": "tsx src/apps/cli/index.ts",
-    "dev:web": "nodemon --legacy-watch --exec tsx src/apps/web/index.ts",
+    "dev:cli": "node --import tsx --watch --enable-source-maps src/apps/cli/index.ts",
+    "dev:web": "node --import tsx --watch --enable-source-maps src/apps/web/index.ts",
     "start:cli": "node dist/apps/cli/index.js",
     "start:web": "node dist/apps/web/index.js",
-    "test": "echo \"No tests specified\" && exit 0",
+    "test": "echo \"NYI\" && exit 0",
     "prepublishOnly": "npm run build"
   },
   "bin": {
-    "v10m": "./src/apps/cli/index.ts",
-    "v10m-web": "./src/apps/web/index.ts"
+    "v10m": "./dist/apps/cli/index.js",
+    "v10m-web": "./dist/apps/web/index.js"
   },
   "exports": {
-    ".": "./src/index.ts",
-    "./jobs": "./src/jobs/index.ts",
-    "./workers": "./src/workers/index.ts"
+    ".": "./dist/index.js",
+    "./jobs": "./dist/jobs/index.js",
+    "./workers": "./dist/workers/index.js"
   },
   "dependencies": {
     "@eslint/js": "^9.39.2",
     "@fastify/cookie": "^11.0.2",
     "@fastify/multipart": "^9.3.0",
+    "chalk": "^5.6.2",
     "commander": "^14.0.2",
     "dotenv": "^17.2.3",
     "ejs": "^3.1.10",
@@ -41,13 +42,13 @@
     "eslint-plugin-prettier": "^5.5.4",
     "fastify": "^5.6.2",
     "file-type": "^21.3.0",
+    "sanitize-filename": "^1.6.3",
     "snowyflake": "^2.0.1",
     "typescript-eslint": "^8.52.0"
   },
   "devDependencies": {
     "@types/ejs": "^3.1.5",
     "@types/node": "^25.0.3",
-    "nodemon": "^3.1.11",
     "tsx": "^4.21.0"
   }
 }

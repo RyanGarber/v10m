@@ -1,18 +1,10 @@
-import { type Job } from '../jobs/index.js';
-
-/**
- * Worker
- */
-export interface WorkerListItem {
-  jobs: Job[];
-  working: boolean;
-}
+import { type WorkerInstance } from '../workers/index.js';
 
 /**
  * Worker list
  */
 export class WorkerList {
-  private total: Map<bigint, WorkerListItem>;
+  private total: Map<bigint, WorkerInstance>;
   private waiting: bigint[];
 
   constructor() {
@@ -24,7 +16,7 @@ export class WorkerList {
     return this.total.get(BigInt(id));
   }
 
-  add(id: bigint | string, item: WorkerListItem) {
+  add(id: bigint | string, item: WorkerInstance) {
     this.total.set(BigInt(id), item);
   }
 
@@ -59,14 +51,14 @@ export class WorkerList {
     if (this.waiting.length > 0) {
       const id = this.waiting.shift()!;
       const item = this.total.get(id)!;
-      return { id, item };
+      return [id, item] as const;
     }
     return undefined;
   }
 
   *[Symbol.iterator]() {
     for (const [id, item] of this.total) {
-      yield { id, item };
+      yield [id, item] as const;
     }
   }
 }

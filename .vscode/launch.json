@@ -2,50 +2,42 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Project",
+      "name": "Debug Web",
       "type": "node",
       "request": "launch",
-      "program": "${workspaceFolder}/src/index.ts",
-      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/tsx",
-      "skipFiles": ["<node_internals>/**"],
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:web"],
+      "skipFiles": ["<node_internals>/*"],
       "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen"
-    },
-    {
-      "name": "Project (Debug)",
-      "type": "node",
-      "request": "launch",
-      "program": "${workspaceFolder}/src/index.ts",
       "env": {
         "V10M_DEBUG": "true"
-      },
-      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/tsx",
-      "skipFiles": ["<node_internals>/**"],
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen"
+      }
     },
     {
-      "name": "File",
+      "name": "Debug CLI",
       "type": "node",
       "request": "launch",
-      "program": "${file}",
-      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/tsx",
-      "skipFiles": ["<node_internals>/**"],
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:cli", "--", "${input:args}"],
+      "skipFiles": ["<node_internals>/*"],
       "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen"
-    },
-    {
-      "name": "File (Debug)",
-      "type": "node",
-      "request": "launch",
-      "program": "${file}",
       "env": {
         "V10M_DEBUG": "true"
-      },
-      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/tsx",
-      "skipFiles": ["<node_internals>/**"],
+      }
+    },
+    {
+      "name": "Debug File",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--import", "tsx", "--watch", "--enable-source-maps"],
+      "args": ["${file}"],
+      "skipFiles": ["<node_internals>/*"],
       "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen"
+      "internalConsoleOptions": "neverOpen",
+      "env": {
+        "V10M_DEBUG": "true"
+      }
     }
   ]
 }

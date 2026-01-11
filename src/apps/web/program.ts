@@ -12,15 +12,21 @@ export class WebProgram {
       .option('-d, --debug', 'enable debug mode')
       .option('-h, --host <host>', 'server host')
       .option('-p, --port <port>', 'server port', parseInt)
-      .action((options) => {
+      .action((options: { debug?: boolean; host?: string; port?: number }) => {
         const overrides: PartialConfig = {};
 
         if (options.debug) {
           overrides.debug = true;
         }
 
-        if (options.host || options.port) {
-          overrides.web = { host: options.host, port: options.port };
+        if (options.host) {
+          overrides.web = overrides.web ?? {};
+          overrides.web.host = options.host;
+        }
+
+        if (options.port) {
+          overrides.web = overrides.web ?? {};
+          overrides.web.port = options.port;
         }
 
         const server = new WebServer(overrides);

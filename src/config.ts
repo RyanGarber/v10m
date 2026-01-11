@@ -69,7 +69,7 @@ function loadFromFile(): PartialConfig {
     if (fs.existsSync(configPath)) {
       try {
         const content = fs.readFileSync(configPath, 'utf-8');
-        return JSON.parse(content);
+        return JSON.parse(content) as PartialConfig;
       } catch (err) {
         console.warn(`Failed to parse config file ${configPath}:`, err);
       }
