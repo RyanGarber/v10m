@@ -14,7 +14,6 @@ import chalk from 'chalk';
  */
 export interface FFmpegJobOptions extends JobOptions {
   targetSizeKb?: number;
-  onProgress?: (percent: number) => void;
 }
 
 /**
@@ -22,9 +21,9 @@ export interface FFmpegJobOptions extends JobOptions {
  */
 export class FFmpegJob extends Job {
   constructor(
-    private inputFile: string,
-    private outputFile: string,
-    options: FFmpegJobOptions = {}
+    public readonly inputFile: string,
+    public readonly outputFile: string,
+    public readonly options: FFmpegJobOptions = {}
   ) {
     super(options);
   }
@@ -32,7 +31,7 @@ export class FFmpegJob extends Job {
   async run() {
     console.log(`Starting transcode from ${this.inputFile} to ${this.outputFile}`);
     this.files.push(this.outputFile);
-    (this.options as FFmpegJobOptions).onProgress?.(0);
+    this.options.onProgress?.(0);
 
     // Check for NVIDIA GPU
     const hasNvidia = (await new Command('nvidia-smi').run().catch(() => false)) !== false;
@@ -60,8 +59,7 @@ export class FFmpegJob extends Job {
 
     // Calculate target video bitrate
     const maxSizeKilobits =
-      ((this.options as FFmpegJobOptions).targetSizeKb ?? fs.statSync(this.inputFile).size / 1024) *
-      8;
+      (this.options.targetSizeKb ?? fs.statSync(this.inputFile).size / 1024) * 8;
     let bitrate =
       (maxSizeKilobits / seconds - FFMPEG_AUDIO_BITRATE) * (1 - FFMPEG_VIDEO_BITRATE_BUFFER);
 
@@ -69,6 +67,7 @@ export class FFmpegJob extends Job {
       console.warn(chalk.yellow('ffprobe failed; compression and progress not available.'));
       bitrate = FFMPEG_VIDEO_BITRATE_DEFAULT;
     }
+    bitrate = Math.max(100, Math.min(bitrate, FFMPEG_VIDEO_BITRATE_DEFAULT));
     console.log(`Using target video bitrate: ${Math.floor(bitrate)} kbps`);
 
     // Construct ffmpeg arguments
@@ -102,7 +101,7 @@ export class FFmpegJob extends Job {
           parseFloat(timeString[3]);
         const progress = Math.min(Math.round((timeSeconds / seconds) * 100), 100);
 
-        (this.options as FFmpegJobOptions).onProgress?.(progress);
+        this.options.onProgress?.(progress);
       }
     });
 

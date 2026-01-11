@@ -44,7 +44,7 @@ export class CliProgram {
       .option('-u, --username <username>', 'username for authentication')
       .option('-p, --password <password>', 'password for authentication')
       .option('-c, --cookies <path>', 'path to cookies file')
-      .option('-o, --output <path>', 'output file', './$(title)s.mp4')
+      .option('-o, --output <path>', 'output file', './%(title)s.mp4')
       .action(
         (
           url: string,
@@ -61,10 +61,12 @@ export class CliProgram {
             password: options.password,
             cookies: options.cookies ? fs.readFileSync(options.cookies, 'utf-8') : undefined,
           };
-          this.workers.addWorkerToQueue(
-            [new YTdlpJob(url, options.output, ytdlpOptions)],
-            (jobId, data) => console.log(`[${data.status}]`, data)
-          );
+          this.workers.addWorkerToQueue({
+            jobs: [new YTdlpJob(url, options.output, ytdlpOptions)],
+            onFinished: () => console.log(`Download finished: ${options.output}`),
+            onFailed: (error) => console.log(`Download failed:`, error),
+            onProgress: (percent) => console.log(`Download progress: ${percent}%`),
+          });
         }
       );
 
@@ -82,10 +84,12 @@ export class CliProgram {
         const ffmpegOptions: FFmpegJobOptions = {
           targetSizeKb: options.targetSizeKb,
         };
-        this.workers.addWorkerToQueue(
-          [new FFmpegJob(input, options.output, ffmpegOptions)],
-          (jobId, data) => console.log(`[${data.status}]`, data)
-        );
+        this.workers.addWorkerToQueue({
+          jobs: [new FFmpegJob(input, options.output, ffmpegOptions)],
+          onFinished: () => console.log(`Transcode finished: ${options.output}`),
+          onFailed: (error) => console.log(`Transcode failed:`, error),
+          onProgress: (percent) => console.log(`Transcode progress: ${percent}%`),
+        });
       });
   }
 

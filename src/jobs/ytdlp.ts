@@ -11,17 +11,18 @@ export interface YTdlpJobOptions extends JobOptions {
   username?: string;
   password?: string;
   cookies?: string;
-  onProgress?: (percent: number) => void;
 }
 
 /**
  * YT-dlp job
  */
 export class YTdlpJob extends Job {
+  public title = 'video';
+
   constructor(
-    private inputUrl: string,
-    private outputFile: string,
-    options: YTdlpJobOptions = {}
+    public readonly inputUrl: string,
+    public readonly outputFile: string,
+    public readonly options: YTdlpJobOptions = {}
   ) {
     super(options);
   }
@@ -29,31 +30,28 @@ export class YTdlpJob extends Job {
   async run() {
     console.log(`Starting download from ${this.inputUrl} to ${this.outputFile}`);
     this.files.push(this.outputFile);
-    (this.options as YTdlpJobOptions).onProgress?.(0);
+    this.options.onProgress?.(0);
 
     // Check for NVIDIA GPU
     const hasNvidia = (await new Command('nvidia-smi').run().catch(() => false)) !== false;
 
     // Construct yt-dlp command
-    let command = `yt-dlp -o ${this.outputFile} -f "bv*[height<=1080][ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b" -v --js-runtime=node`;
+    let command = `yt-dlp -o ${this.outputFile} -f "bv*[height<=1080][ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b" --js-runtime=node --print "video:title=%(title)s" --no-simulate --progress --newline`;
     if (hasNvidia) {
       command += ` --postprocessor-args "ffmpeg_i:${FFMPEG_NVIDIA_ARGS.INPUT}" --postprocessor-args "ffmpeg_o:${FFMPEG_NVIDIA_ARGS.OUTPUT}"`;
     }
-    if ((this.options as YTdlpJobOptions).username && (this.options as YTdlpJobOptions).password) {
-      command += ` -u ${(this.options as YTdlpJobOptions).username} -p ${(this.options as YTdlpJobOptions).password}`;
+    if (this.options.username && this.options.password) {
+      command += ` -u ${this.options.username} -p ${this.options.password}`;
     }
-    if (
-      (this.options as YTdlpJobOptions).cookies &&
-      (this.options as YTdlpJobOptions).cookies!.length > 0
-    ) {
-      fs.writeFileSync(`${this.outputFile}.cookies`, (this.options as YTdlpJobOptions).cookies!);
+    if (this.options.cookies && this.options.cookies.length > 0) {
+      fs.writeFileSync(`${this.outputFile}.cookies`, this.options.cookies);
       this.files.push(`${this.outputFile}.cookies`);
       command += ` --cookies ${this.outputFile}.cookies`;
     }
     command += ` ${this.inputUrl}`;
 
     const ytdlp = new Command(command, {
-      captureOutput: ['stderr'],
+      captureOutput: ['stdout', 'stderr'],
       captureError: [],
       treatAsError: (line) => /error[:|\]]/im.test(line),
       onError: this.options.debug ? ErrorMode.Reject : ErrorMode.Stop | ErrorMode.Reject,
@@ -67,7 +65,11 @@ export class YTdlpJob extends Job {
       const progressMatch = /(\d{1,3}\.\d)%/im.exec(data);
       if (progressMatch) {
         const percent = parseFloat(progressMatch[1]);
-        (this.options as YTdlpJobOptions).onProgress?.(percent);
+        this.options.onProgress?.(percent);
+      }
+      const titleMatch = /title=(.+)/im.exec(data);
+      if (titleMatch) {
+        this.title = titleMatch[1];
       }
     });
 

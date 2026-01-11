@@ -7,18 +7,16 @@ export interface JobOptions {
   debug?: boolean;
   onFinished?: () => void;
   onFailed?: (error: Error) => void;
+  onProgress?: (percent: number) => void;
 }
 
 /**
  * Base job class
  */
 export class Job {
-  options: JobOptions;
   files: string[] = [];
 
-  constructor(options: JobOptions = {}) {
-    this.options = options;
-  }
+  constructor(public readonly options: JobOptions = {}) {}
 
   // eslint-disable-next-line @typescript-eslint/require-await
   async run() {

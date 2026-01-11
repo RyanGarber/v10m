@@ -7,7 +7,8 @@ export class Worker {
   constructor(
     public jobs: Job[],
     public onFinished?: () => void,
-    public onFailed?: (jobIndex: number, error: Error) => void
+    public onFailed?: (jobIndex: number, error: Error) => void,
+    public onProgress?: (jobIndex: number, percent: number) => void
   ) {}
 }
 
@@ -20,6 +21,7 @@ export class WorkerInstance extends Worker {
     try {
       for (const job of this.jobs) {
         job.options.debug = debug;
+        job.options.onProgress = (percent) => this.onProgress?.(jobIndex, percent);
         await job.run();
         jobIndex++;
       }
@@ -37,7 +39,11 @@ export class WorkerInstance extends Worker {
     }
   }
 
+  getFirstJobOfType<T>(jobType: new (...args: never[]) => T): T | null {
+    return (this.jobs.find((job) => job instanceof jobType) as T) ?? null;
+  }
+
   static fromWorker(worker: Worker): WorkerInstance {
-    return new WorkerInstance(worker.jobs, worker.onFinished, worker.onFailed);
+    return new WorkerInstance(worker.jobs, worker.onFinished, worker.onFailed, worker.onProgress);
   }
 }

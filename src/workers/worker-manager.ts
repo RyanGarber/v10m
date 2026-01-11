@@ -23,6 +23,10 @@ export class WorkerManager {
     return id;
   }
 
+  getWorker(id: bigint | string) {
+    return this.workers.get(typeof id === 'string' ? BigInt(id) : id);
+  }
+
   getWorkersWaiting() {
     return this.workers.getCountWaiting();
   }
