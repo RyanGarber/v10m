@@ -1,10 +1,10 @@
 Priority:
-- Workers not exiting on failure in apps/web
-- - Promisify jobs & SpawnChildProcess to simplify logic flow?
+! none !
 
 Other:
 - Add VPN option
-- Use progress from yt-dlp stderr?
+- Add explicit 'override' to functions
+- Make 'configManager' name consistent
 
 Security:
 - Check for symlinks on upload
