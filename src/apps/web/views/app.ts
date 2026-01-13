@@ -2,7 +2,7 @@
 
 import axios, { type AxiosError } from 'axios';
 import Toastify from 'toastify-js';
-import type { ProcessState } from '../schema.js';
+import type { ProcessStatus } from '../schema.js';
 
 export {};
 
@@ -78,9 +78,9 @@ window.onload = () => {
     const getStatus = async (silent: boolean) => {
       let state;
       try {
-        state = (await axios.get<ProcessState>(`${window.url}/process/${jobId}`)).data;
+        state = (await axios.get<ProcessStatus>(`${window.url}/process/${jobId}`)).data;
       } catch (error) {
-        state = (error as AxiosError).response?.data as ProcessState;
+        state = (error as AxiosError).response?.data as ProcessStatus;
       }
 
       disableControls(['waiting', 'working'].includes(state.status));
@@ -105,10 +105,10 @@ window.onload = () => {
       }
 
       if (state.status === 'waiting' || state.status === 'working') {
-        if (state.literal === 'waiting' && state.at !== jobLastAt) {
+        if (state.status === 'waiting' && state.at !== jobLastAt) {
           toast(`You're ${ordinal(state.at)} in line...`, 'primary');
           jobLastAt = state.at;
-        } else if (state.literal === 'working' && jobLastAt !== 0) {
+        } else if (state.status === 'working' && jobLastAt !== 0) {
           toast('Now getting your video...', 'primary');
           jobLastAt = 0;
         }
@@ -148,9 +148,9 @@ window.onload = () => {
 
     let state;
     try {
-      state = (await axios.post<ProcessState>(`${window.url}/process`, formData)).data;
+      state = (await axios.post<ProcessStatus>(`${window.url}/process`, formData)).data;
     } catch (error) {
-      state = (error as AxiosError).response?.data as ProcessState;
+      state = (error as AxiosError).response?.data as ProcessStatus;
     }
 
     console.log(state);

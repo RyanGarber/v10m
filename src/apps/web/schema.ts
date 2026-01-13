@@ -1,41 +1,31 @@
 import { z } from 'zod';
 
-export const WaitingSchema = z.object({
-  status: z.literal('waiting'),
-  id: z.string(),
-  at: z.number(),
-});
-
-export const WorkingSchema = z.object({
-  status: z.literal('working'),
-  id: z.string(),
-  progress: z.number(),
-});
-
-export const FinishedSchema = z.object({
-  status: z.literal('finished'),
-  id: z.string(),
-  filename: z.string(),
-  download: z.string(),
-});
-
-export const FailedSchema = z.object({
-  status: z.literal('failed'),
-  id: z.string(),
-  details: z.string(),
-});
-
-export const ErrorSchema = z.object({
-  status: z.literal('error'),
-  details: z.string(),
-});
-
-export const ProcessStateSchema = z.discriminatedUnion('process', [
-  WaitingSchema,
-  WorkingSchema,
-  FinishedSchema,
-  FailedSchema,
-  ErrorSchema,
+export const ProcessStatusSchema = z.discriminatedUnion('status', [
+  z.object({
+    status: z.literal('waiting'),
+    id: z.string(),
+    at: z.number(),
+  }),
+  z.object({
+    status: z.literal('working'),
+    id: z.string(),
+    progress: z.number(),
+  }),
+  z.object({
+    status: z.literal('finished'),
+    id: z.string(),
+    filename: z.string(),
+    download: z.string(),
+  }),
+  z.object({
+    status: z.literal('failed'),
+    id: z.string(),
+    details: z.string(),
+  }),
+  z.object({
+    status: z.literal('error'),
+    details: z.string(),
+  }),
 ]);
 
-export type ProcessState = z.infer<typeof ProcessStateSchema>;
+export type ProcessStatus = z.infer<typeof ProcessStatusSchema>;

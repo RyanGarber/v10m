@@ -16,20 +16,7 @@ import { WorkerManager } from '../../workers/index.js';
 import pkg from '../../../package.json' with { type: 'json' };
 import { WEB_UPLOAD_CLEANUP_MS } from '../../consts.js';
 import sanitize from 'sanitize-filename';
-import { type ProcessState } from './schema.js';
-
-/**
- * Process state (returned verbatim to user)
- */
-export interface OldProcessState {
-  id: string;
-  status: 'waiting' | 'working' | 'finished' | 'failed';
-  progress?: number;
-  filename?: string;
-  download?: string;
-  at?: number;
-  details?: string;
-}
+import { type ProcessStatus } from './schema.js';
 
 /**
  * v10m web server
@@ -37,7 +24,7 @@ export interface OldProcessState {
 export class WebServer {
   configManager: ConfigManager;
   workers: WorkerManager;
-  states: Map<bigint, ProcessState>;
+  statuses: Map<bigint, ProcessStatus>;
   fastify: fastify.FastifyInstance;
 
   constructor(configOverrides: PartialConfig = {}) {
@@ -45,7 +32,7 @@ export class WebServer {
 
     console.log('Starting server with config:', this.configManager.config);
     this.workers = new WorkerManager(this.configManager);
-    this.states = new Map<bigint, ProcessState>();
+    this.statuses = new Map<bigint, ProcessStatus>();
 
     this.fastify = fastify({
       routerOptions: {
@@ -99,7 +86,7 @@ export class WebServer {
             return reply.code(400).send({
               status: 'error',
               details: 'Cannot use both file and URL',
-            } satisfies ProcessState);
+            } satisfies ProcessStatus);
           }
 
           console.log(`File being uploaded: ${part.filename}`);
@@ -116,7 +103,7 @@ export class WebServer {
             part.file.resume(); // Drain the stream
             return reply
               .code(400)
-              .send({ status: 'error', details: 'Not a valid video file' } satisfies ProcessState);
+              .send({ status: 'error', details: 'Not a valid video file' } satisfies ProcessStatus);
           }
 
           try {
@@ -125,7 +112,7 @@ export class WebServer {
             console.error('Error writing uploaded file:', error);
             return reply
               .code(500)
-              .send({ status: 'error', details: 'Failed to upload file' } satisfies ProcessState);
+              .send({ status: 'error', details: 'Failed to upload file' } satisfies ProcessStatus);
           }
 
           upload = part.filename;
@@ -144,7 +131,7 @@ export class WebServer {
         } catch (e) {
           return reply
             .code(400)
-            .send({ status: 'error', details: 'Not a valid URL' } satisfies ProcessState);
+            .send({ status: 'error', details: 'Not a valid URL' } satisfies ProcessStatus);
         }
       }
 
@@ -160,7 +147,7 @@ export class WebServer {
       if (!targetSize || targetSize <= 0 || targetSize > maxTargetSize) {
         return reply
           .code(400)
-          .send({ status: 'error', details: `Not a valid target size` } satisfies ProcessState);
+          .send({ status: 'error', details: `Not a valid target size` } satisfies ProcessStatus);
       }
 
       console.log(
@@ -191,7 +178,7 @@ export class WebServer {
                 : worker.getFirstJobOfType(YTdlpJob)!.title
             );
             const downloadUrl = `${this.configManager.config.web.url}/process/${id}/${filename}.mp4`;
-            this.states.set(id, {
+            this.statuses.set(id, {
               status: 'finished',
               id: id.toString(),
               filename: filename,
@@ -202,7 +189,7 @@ export class WebServer {
         onFailed: (jobIndex, error) => {
           const worker = this.workers.getWorker(id);
           if (worker) {
-            this.states.set(id, {
+            this.statuses.set(id, {
               status: 'failed',
               id: id.toString(),
               details: `Job ${jobIndex} failed: ${error.message.trim()}`,
@@ -212,7 +199,7 @@ export class WebServer {
         onProgress: (jobIndex, percent) => {
           const worker = this.workers.getWorker(id);
           if (worker) {
-            this.states.set(id, {
+            this.statuses.set(id, {
               status: 'working',
               id: id.toString(),
               progress: (100 / worker.jobs.length) * jobIndex + percent / worker.jobs.length,
@@ -221,24 +208,24 @@ export class WebServer {
         },
       });
 
-      this.states.set(id, {
+      this.statuses.set(id, {
         status: 'waiting',
         id: id.toString(),
         at: this.workers.getWorkersWaiting(),
       });
 
-      return this.states.get(id);
+      return this.statuses.get(id);
     });
 
     this.fastify.get(
       `${this.configManager.config.web.path}/process/:id`,
       async (request, reply) => {
         const params = request.params as { id: string };
-        const processState = this.states.get(SafeBigInt(params.id));
+        const processState = this.statuses.get(SafeBigInt(params.id));
         if (!processState) {
           return reply
             .code(404)
-            .send({ status: 'error', details: 'Job not found' } satisfies ProcessState);
+            .send({ status: 'error', details: 'Job not found' } satisfies ProcessStatus);
         }
 
         if (processState.status === 'waiting') {
@@ -252,16 +239,16 @@ export class WebServer {
       `${this.configManager.config.web.path}/process/:id/:filename`,
       async (request, reply) => {
         const params = request.params as { id: string; filename: string };
-        const processState = this.states.get(SafeBigInt(params.id));
+        const processState = this.statuses.get(SafeBigInt(params.id));
         if (!processState) {
           return reply
             .code(404)
-            .send({ status: 'error', details: 'Job not found' } satisfies ProcessState);
+            .send({ status: 'error', details: 'Job not found' } satisfies ProcessStatus);
         }
         if (processState.status !== 'finished') {
           return reply
             .code(404)
-            .send({ status: 'error', details: 'Job not finished' } satisfies ProcessState);
+            .send({ status: 'error', details: 'Job not finished' } satisfies ProcessStatus);
         }
 
         const ffmpegOutput = this.workers.getWorker(params.id)!.getFirstJobOfType(FFmpegJob)!
@@ -302,7 +289,7 @@ export class WebServer {
       }
       return reply
         .code(404)
-        .send({ status: 'error', details: 'Page not found' } satisfies ProcessState);
+        .send({ status: 'error', details: 'Page not found' } satisfies ProcessStatus);
     });
   }
 
