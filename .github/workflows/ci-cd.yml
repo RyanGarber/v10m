@@ -15,7 +15,7 @@ jobs:
           imageName: ghcr.io/ryangarber/v10m
           cacheFrom: ghcr.io/ryangarber/v10m
           push: never
-          runCmd: node tools/build.js
+          runCmd: node scripts/build.js
 
   deploy:
     runs-on: ubuntu-latest
