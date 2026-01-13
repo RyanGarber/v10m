@@ -19,9 +19,8 @@ export interface Config {
     host: string;
     port: number;
     path: string;
-    maxUploadSizeMb: number;
+    maxFileSizeMb: number;
     targetSizeListMb: number[];
-    defaultDownloadFilename: string;
   };
 }
 
@@ -49,9 +48,8 @@ const defaults: Config = {
     host: '127.0.0.1',
     port: 8080,
     path: '/',
-    maxUploadSizeMb: 500,
+    maxFileSizeMb: 500,
     targetSizeListMb: [10, 25, 50],
-    defaultDownloadFilename: 'video-download',
   },
 };
 
@@ -100,13 +98,12 @@ function loadFromEnv(): PartialConfig {
       host: process.env.V10M_WEB_HOST,
       port: process.env.V10M_WEB_PORT ? parseInt(process.env.V10M_WEB_PORT, 10) : undefined,
       path: process.env.V10M_WEB_PATH,
-      maxUploadSizeMb: process.env.V10M_WEB_MAX_UPLOAD_SIZE_MB
+      maxFileSizeMb: process.env.V10M_WEB_MAX_UPLOAD_SIZE_MB
         ? parseInt(process.env.V10M_WEB_MAX_UPLOAD_SIZE_MB, 10)
         : undefined,
       targetSizeListMb: process.env.V10M_WEB_TARGET_SIZE_LIST_MB
         ? process.env.V10M_WEB_TARGET_SIZE_LIST_MB.split(',').map((s) => parseInt(s, 10))
         : undefined,
-      defaultDownloadFilename: process.env.V10M_WEB_DEFAULT_DOWNLOAD_FILENAME,
     },
   };
 }
@@ -152,14 +149,11 @@ function merge(...configs: PartialConfig[]): Config {
             config.web.path.endsWith('/') ? -1 : undefined
           );
       }
-      if (config.web.maxUploadSizeMb !== undefined) {
-        result.web.maxUploadSizeMb = config.web.maxUploadSizeMb;
+      if (config.web.maxFileSizeMb !== undefined) {
+        result.web.maxFileSizeMb = config.web.maxFileSizeMb;
       }
       if (config.web.targetSizeListMb !== undefined) {
         result.web.targetSizeListMb = config.web.targetSizeListMb;
-      }
-      if (config.web.defaultDownloadFilename !== undefined) {
-        result.web.defaultDownloadFilename = config.web.defaultDownloadFilename;
       }
     }
   }

@@ -51,3 +51,7 @@ web: {
 ### Web
 
 - `v10m-web [--host] [--port]`
+
+# Tests
+
+This project is 100% self-written with the exception of tests. Tests are not fun code, so I let Antigravity write them. I have looked over them and they seem to be adequate, but do not expect them to be perfect. I welcome any contributions to improve them.

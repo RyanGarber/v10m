@@ -30,8 +30,8 @@ export class WebProgram {
         }
 
         const server = new WebServer(overrides);
-        server.start();
-        server.processWorkers.start();
+        void server.start();
+        void server.workers.start();
       });
   }
 

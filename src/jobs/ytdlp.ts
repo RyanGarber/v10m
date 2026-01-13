@@ -22,35 +22,63 @@ export class YTdlpJob extends Job {
   constructor(
     public readonly inputUrl: string,
     public readonly outputFile: string,
-    public readonly options: YTdlpJobOptions = {}
+    public override readonly options: YTdlpJobOptions = {}
   ) {
     super(options);
   }
 
-  async run() {
+  override async run() {
+    // Validate protocol
+    try {
+      const parsed = new URL(this.inputUrl);
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        throw new Error(`Invalid protocol: ${parsed.protocol}`);
+      }
+    } catch {
+      throw new Error(`Invalid URL: ${this.inputUrl}`);
+    }
+
     console.log(`Starting download from ${this.inputUrl} to ${this.outputFile}`);
     this.files.push(this.outputFile);
     this.options.onProgress?.(0);
 
     // Check for NVIDIA GPU
-    const hasNvidia = (await new Command('nvidia-smi').run().catch(() => false)) !== false;
+    const hasNvidia = (await new Command(['nvidia-smi']).run().catch(() => false)) !== false;
 
     // Construct yt-dlp command
-    let command = `yt-dlp -o ${this.outputFile} -f "bv*[height<=1080][ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b" --js-runtime=node --print "video:title=%(title)s" --no-simulate --progress --newline`;
+    const args = [
+      'yt-dlp',
+      '-o',
+      this.outputFile,
+      '-f',
+      'bv*[height<=1080][ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b',
+      '--js-runtime=node',
+      '--print',
+      'video:title=%(title)s',
+      '--no-simulate',
+      '--progress',
+      '--newline',
+    ];
+
     if (hasNvidia) {
-      command += ` --postprocessor-args "ffmpeg_i:${FFMPEG_NVIDIA_ARGS.INPUT}" --postprocessor-args "ffmpeg_o:${FFMPEG_NVIDIA_ARGS.OUTPUT}"`;
+      args.push(
+        '--postprocessor-args',
+        `ffmpeg_i:${FFMPEG_NVIDIA_ARGS.INPUT}`,
+        '--postprocessor-args',
+        `ffmpeg_o:${FFMPEG_NVIDIA_ARGS.OUTPUT}`
+      );
     }
     if (this.options.username && this.options.password) {
-      command += ` -u ${this.options.username} -p ${this.options.password}`;
+      args.push('-u', this.options.username, '-p', this.options.password);
     }
     if (this.options.cookies && this.options.cookies.length > 0) {
       fs.writeFileSync(`${this.outputFile}.cookies`, this.options.cookies);
       this.files.push(`${this.outputFile}.cookies`);
-      command += ` --cookies ${this.outputFile}.cookies`;
+      args.push('--cookies', `${this.outputFile}.cookies`);
     }
-    command += ` ${this.inputUrl}`;
+    args.push(this.inputUrl);
 
-    const ytdlp = new Command(command, {
+    const ytdlp = new Command(args, {
       captureOutput: ['stdout', 'stderr'],
       captureError: [],
       treatAsError: (line) => /error[:|\]]/im.test(line),

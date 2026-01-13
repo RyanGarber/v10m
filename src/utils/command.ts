@@ -22,14 +22,15 @@ export enum ErrorMode {
 }
 
 export class Command extends EventTarget {
-  private command: string;
   private options: CommandOptions;
   private output = '';
   private stopped = false;
 
-  constructor(command: string, options: Partial<CommandOptions> = {}) {
+  constructor(
+    private command: string[],
+    options: Partial<CommandOptions> = {}
+  ) {
     super();
-    this.command = command;
     this.options = {
       captureOutput: options.captureOutput ?? ['stdout'],
       captureError: options.captureError ?? ['stderr'],
@@ -54,11 +55,10 @@ export class Command extends EventTarget {
       this.output = '';
       this.stopped = false;
 
-      const args = this.command.match(/"[^"]*"|'[^']*'|[^ ]+/g) ?? [];
-      const process = spawn(
-        args[0]!,
-        args.slice(1).map((arg) => arg.replace(/^["'](.*)["']$/, '$1'))
-      );
+      const executable = this.command[0];
+      const args = this.command.slice(1);
+
+      const process = spawn(executable, args);
 
       const streams = {
         stdout: process.stdout,

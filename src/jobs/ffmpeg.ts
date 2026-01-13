@@ -23,23 +23,23 @@ export class FFmpegJob extends Job {
   constructor(
     public readonly inputFile: string,
     public readonly outputFile: string,
-    public readonly options: FFmpegJobOptions = {}
+    public override readonly options: FFmpegJobOptions = {}
   ) {
     super(options);
   }
 
-  async run() {
+  override async run() {
     console.log(`Starting transcode from ${this.inputFile} to ${this.outputFile}`);
     this.files.push(this.outputFile);
     this.options.onProgress?.(0);
 
     // Check for NVIDIA GPU
-    const hasNvidia = (await new Command('nvidia-smi').run().catch(() => false)) !== false;
+    const hasNvidia = (await new Command(['nvidia-smi']).run().catch(() => false)) !== false;
 
     // Get input video duration
     let seconds = -1;
 
-    const ffprobe = new Command(`ffprobe -i ${this.inputFile}`, {
+    const ffprobe = new Command(['ffprobe', '-i', this.inputFile], {
       captureOutput: ['stderr'],
       captureError: [],
       onError: ErrorMode.None,
@@ -71,18 +71,25 @@ export class FFmpegJob extends Job {
     console.log(`Using target video bitrate: ${Math.floor(bitrate)} kbps`);
 
     // Construct ffmpeg arguments
-    let command = 'ffmpeg';
+    const args = ['ffmpeg'];
     if (hasNvidia) {
-      command += ` ${FFMPEG_NVIDIA_ARGS.INPUT}`;
+      args.push(...FFMPEG_NVIDIA_ARGS.INPUT.split(' '));
     }
-    command += ` -i ${this.inputFile} -progress pipe:2`;
+    args.push('-i', this.inputFile, '-progress', 'pipe:2');
     if (hasNvidia) {
-      command += ` ${FFMPEG_NVIDIA_ARGS.OUTPUT}`;
+      args.push(...FFMPEG_NVIDIA_ARGS.OUTPUT.split(' '));
     }
-    command += ` -b:v ${Math.floor(bitrate)}k -b:a ${FFMPEG_AUDIO_BITRATE}k -y ${this.outputFile}`;
+    args.push(
+      '-b:v',
+      `${Math.floor(bitrate)}k`,
+      '-b:a',
+      `${FFMPEG_AUDIO_BITRATE}k`,
+      '-y',
+      this.outputFile
+    );
 
     // Run ffmpeg and handle output
-    const ffmpeg = new Command(command, {
+    const ffmpeg = new Command(args, {
       captureOutput: ['stderr'],
       captureError: [],
       treatAsError: (line) => /error[:|\]]/im.test(line),

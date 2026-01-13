@@ -7,15 +7,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Build
-      uses: devcontainers/ci@v0.3
-      with:
-        imageName: ghcr.io/ryangarber/v10m
-        cacheFrom: ghcr.io/ryangarber/v10m
-        push: never
-        runCmd: node build.js
+      - uses: actions/checkout@v4
+
+      - name: Build
+        uses: devcontainers/ci@v0.3
+        with:
+          imageName: ghcr.io/ryangarber/v10m
+          cacheFrom: ghcr.io/ryangarber/v10m
+          push: never
+          runCmd: node tools/build.js
 
   deploy:
     runs-on: ubuntu-latest

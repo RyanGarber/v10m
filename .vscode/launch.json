@@ -1,16 +1,24 @@
 {
   "version": "0.2.0",
+  "inputs": [
+    {
+      "id": "args",
+      "type": "promptString",
+      "description": "Arguments"
+    }
+  ],
   "configurations": [
     {
       "name": "Debug Web",
       "type": "node",
       "request": "launch",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:web"],
+      "runtimeArgs": ["run", "dev:web", "--", "${input:args}"],
       "skipFiles": ["<node_internals>/*"],
       "console": "integratedTerminal",
       "env": {
-        "V10M_DEBUG": "true"
+        "V10M_DEBUG": "true",
+        "V10M_KILL_PORT": "true"
       }
     },
     {
@@ -30,8 +38,15 @@
       "type": "node",
       "request": "launch",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["--import", "tsx", "--watch", "--enable-source-maps"],
-      "args": ["${file}"],
+      "runtimeArgs": [
+        "--import",
+        "tsx",
+        "--enable-source-maps",
+        "--watch",
+        "--",
+        "${file}",
+        "${input:args}"
+      ],
       "skipFiles": ["<node_internals>/*"],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",

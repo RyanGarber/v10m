@@ -10,14 +10,14 @@ import pkg from '../../../package.json' with { type: 'json' };
  * v10m CLI
  */
 export class CliProgram {
-  private configs: ConfigManager;
+  private configManager: ConfigManager;
   private workers: WorkerManager;
   private program: Command;
 
   constructor() {
-    this.configs = new ConfigManager();
+    this.configManager = new ConfigManager();
 
-    this.workers = new WorkerManager(this.configs);
+    this.workers = new WorkerManager(this.configManager);
     this.workers.start();
 
     this.program = new Command();
@@ -35,7 +35,7 @@ export class CliProgram {
           overrides.debug = true;
         }
 
-        this.configs.update(overrides);
+        this.configManager.update(overrides);
       });
 
     this.program

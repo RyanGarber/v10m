@@ -48,7 +48,9 @@ export class WorkerManager {
           this.workers.delete(id);
         }
       }
+    }, this.configManager.config.workers.loopMs);
 
+    setInterval(() => {
       if (this.workers.getCountWorking() < this.configManager.config.workers.max) {
         const [id, worker] = this.workers.getNextWaiting() ?? [];
         if (worker) {
