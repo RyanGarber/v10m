@@ -2,7 +2,7 @@
 
 import axios, { type AxiosError } from 'axios';
 import Toastify from 'toastify-js';
-import type { ProcessState } from '../../shared/schema.js';
+import type { ProcessState } from '../schema.js';
 
 export {};
 
@@ -83,31 +83,28 @@ window.onload = () => {
         state = (error as AxiosError).response?.data as ProcessState;
       }
 
-      disableControls(['waiting', 'working'].includes(state.literal));
+      disableControls(['waiting', 'working'].includes(state.status));
 
-      status.style.display = ['waiting', 'working', 'failed'].includes(state.literal)
+      status.style.display = ['waiting', 'working', 'failed'].includes(state.status)
         ? 'block'
         : 'none';
-      if (state.literal === 'waiting') {
+      if (state.status === 'waiting') {
         progress.style.width = '0%';
-      } else if (state.literal === 'failed') {
+      } else if (state.status === 'failed') {
         progress.style.width = '100%';
-      } else if (state.literal === 'working' && state.progress) {
+      } else if (state.status === 'working' && state.progress) {
         progress.style.width = state.progress + '%';
       }
 
-      progress.classList.toggle('progress-bar-animated', state.literal === 'working');
-      progress.classList.toggle('progress-bar-striped', state.literal === 'working');
-      progress.classList.toggle(
-        'bg-danger',
-        state.literal === 'failed' || state.literal === 'error'
-      );
+      progress.classList.toggle('progress-bar-animated', state.status === 'working');
+      progress.classList.toggle('progress-bar-striped', state.status === 'working');
+      progress.classList.toggle('bg-danger', state.status === 'failed' || state.status === 'error');
 
       if (silent) {
         return;
       }
 
-      if (state.literal === 'waiting' || state.literal === 'working') {
+      if (state.status === 'waiting' || state.status === 'working') {
         if (state.literal === 'waiting' && state.at !== jobLastAt) {
           toast(`You're ${ordinal(state.at)} in line...`, 'primary');
           jobLastAt = state.at;
@@ -116,7 +113,7 @@ window.onload = () => {
           jobLastAt = 0;
         }
         setTimeout(() => void getStatus(false), 1000);
-      } else if (state.literal === 'finished') {
+      } else if (state.status === 'finished') {
         toast('Now downloading!', 'primary');
         const a = document.createElement('a');
         a.href = state.download;
@@ -124,10 +121,10 @@ window.onload = () => {
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-      } else if (state.literal === 'failed') {
+      } else if (state.status === 'failed') {
         toast('Failed to get video. Try troubleshooting.', 'danger');
         troubleshoot(true);
-      } else if (state.literal === 'error') {
+      } else if (state.status === 'error') {
         toast(state.details, 'danger');
       }
     };
@@ -158,14 +155,14 @@ window.onload = () => {
 
     console.log(state);
 
-    if (state.literal === 'error') {
+    if (state.status === 'error') {
       toast(state.details, 'danger');
       jobId = null;
     } else {
       jobId = state.id;
     }
 
-    void getStatus(state.literal === 'error');
+    void getStatus(state.status === 'error');
   };
 
   // Troubleshoot
